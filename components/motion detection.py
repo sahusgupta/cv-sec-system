@@ -2,17 +2,17 @@ import cv2
 import numpy as np
 import sys
 from datetime import datetime
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 def setup_camera(camera_index=0):
     """Initialize the camera and video writer"""
     cap = cv2.VideoCapture(camera_index)
 
-    # Check if camera opened successfully
     if not cap.isOpened():
         print("Error: Could not open camera")
         sys.exit()
 
-    # Get the actual frame size from the camera
     ret, test_frame = cap.read()
     if not ret:
         print("Error: Could not read from camera")
@@ -20,8 +20,6 @@ def setup_camera(camera_index=0):
 
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    # Setup video writer with actual frame dimensions
 
     return cap, None
 
@@ -33,58 +31,64 @@ def detect_motion(frame, last_frame, threshold=30):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if contours:
-        # Find the largest contour
         largest_contour = max(contours, key=cv2.contourArea)
         (x, y, w, h) = cv2.boundingRect(largest_contour)
-        return True, (x, y, w, h)
-    return False, (0, 0, 0, 0)
+        return True, (x, y, w, h), contours
+    return False, (0, 0, 0, 0), []
+
+def plot_contours(frame, contours):
+    """Plot the contours on a Matplotlib plot"""
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    ax.set_title('Motion Detection')
+
+    for contour in contours:
+        (x, y, w, h) = cv2.boundingRect(contour)
+        ax.add_patch(plt.Rectangle((x, y), w, h, fill=False, color='green', linewidth=2))
+
+    plt.axis('off')
+    plt.draw()
+    plt.pause(0.001)
 
 def main():
-    # Initialize variables
     last_frame = None
     detected_motion = False
     frame_rec_count = 0
-    MAX_FRAMES = 240  # 12 seconds at 20 fps
+    MAX_FRAMES = 240
 
     try:
-        # Setup camera and video writer
         cap, out = setup_camera()
 
         while True:
-            # Read frame
             ret, frame = cap.read()
             if not ret:
                 print("Error: Could not read frame")
                 break
 
-            # Convert frame to grayscale for motion detection
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            # Skip the first frame for stable motion detection
             if last_frame is None:
                 last_frame = gray
                 continue
 
-            # Detect motion
-            motion_detected, bbox = detect_motion(frame, last_frame)
+            motion_detected, bbox, contours = detect_motion(frame, last_frame)
             last_frame = gray
 
-            # Draw rectangle if motion is detected
             if motion_detected:
                 (x, y, w, h) = bbox
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 if not detected_motion:
                     print("Motion detected! Started recording.")
                     detected_motion = True
+                plot_contours(frame, contours)
 
-            # Show frame
             cv2.imshow('Motion Detection', frame)
 
             # Exit conditions
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 print("User requested exit")
+                plt.savefig('motion_detection.png')
                 break
-
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")

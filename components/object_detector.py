@@ -44,7 +44,7 @@ class NaiveBayes:
             joint_probs = {}
 
             for class_name, features in self.class_summary.items():
-                total_features = len(features['summary'])
+                total_features = min(len(features['summary']), len(row))
                 prob = 1
 
                 for idx in range(total_features):
@@ -76,7 +76,7 @@ from PIL import Image
 import numpy as np
 
 # 1. Prepare the data
-image_dir = 'images'
+image_dir = '../images'
 image_labels = []
 image_data = []
 
@@ -101,9 +101,10 @@ y = le.fit_transform(image_labels)
 X_train, X_test, y_train, y_test = train_test_split(image_data, y, test_size=0.2, random_state=42)
 
 # 4. Train the Naive Bayes classifier
-clf = GaussianNB()
+clf = NaiveBayes()
 clf.fit(X_train, y_train)
 
 # 5. Evaluate the classifier
 y_pred = clf.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
+print(accuracy)
