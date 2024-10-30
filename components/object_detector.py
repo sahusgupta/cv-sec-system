@@ -1,4 +1,11 @@
 import numpy as np
+import os
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import LabelEncoder
+from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from PIL import Image
 
 class NaiveBayes:
     def __init__(self):
@@ -56,7 +63,9 @@ class NaiveBayes:
                 prior = features['prior']
                 joint_probs[class_name] = prior * prob
             MAP = max(joint_probs, key=joint_probs.get)
-            MAPs.append(MAP)
+            print(MAP)
+            MAPs.append("person" if MAP >= 0.50 else "object")
+            
         return MAPs
 
     def accuracy(self, y_test, y_real):
@@ -67,44 +76,55 @@ class NaiveBayes:
                 corr += 1
         return corr / len(y_test)
 
-import os
-from sklearn.naive_bayes import GaussianNB
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from PIL import Image
-import numpy as np
+    def train(self):
+        image_dir = '../images'
+        image_labels = []
+        image_data = []
 
-# 1. Prepare the data
-image_dir = '../images'
-image_labels = []
-image_data = []
+        batch_size = 100  # Process images in batches of 100
+        num_negative = 0
 
-for filename in os.listdir(image_dir):
-    if filename.endswith('.jpg') or filename.endswith('.png'):
-        image_path = os.path.join(image_dir, filename)
-        image = Image.open(image_path)
-        image_data.append(np.array(image).flatten())
-        image_labels.append('person')
+        for filename in os.listdir(image_dir):
+            if filename.endswith('.jpg') or filename.endswith('.png'):
+                image_path = os.path.join(image_dir, filename)
+                image = Image.open(image_path).resize((64, 64))  # Resize images to reduce memory usage
+                image_data.append(np.array(image).flatten())
+                image_labels.append('person')
 
-# Create negative samples (non-person images)
-num_negative = len(image_data)
-negative_data = np.random.randint(0, 256, size=(num_negative, image_data[0].size))
-image_data.extend(negative_data.tolist())
-image_labels.extend(['no_person'] * num_negative)
+                if len(image_data) == batch_size:
+                    negative_data = np.random.randint(0, 256, size=(batch_size, image_data[0].size))
+                    image_data.extend(negative_data.tolist())
+                    image_labels.extend(['no_person'] * batch_size)
+                    num_negative += batch_size
 
-# 2. Encode the labels
-le = LabelEncoder()
-y = le.fit_transform(image_labels)
+                    X_train, X_test, y_train, y_test = train_test_split(image_data, image_labels, test_size=0.2, random_state=42)
+                    le = LabelEncoder()
+                    y_train = le.fit_transform(y_train)
+                    y_test = le.transform(y_test)
 
-# 3. Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(image_data, y, test_size=0.2, random_state=42)
+                    
+                    self.fit(X_train, y_train)
 
-# 4. Train the Naive Bayes classifier
-clf = NaiveBayes()
-clf.fit(X_train, y_train)
+                    y_pred = self.predict(X_test)
+                    accuracy = accuracy_score(y_test, y_pred)
 
-# 5. Evaluate the classifier
-y_pred = clf.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-print(accuracy)
+                    print(f"Batch complete. Accuracy: {accuracy:.2f}")
+
+                    image_data = []
+                    image_labels = []
+
+            if image_data:
+                X_train, X_test, y_train, y_test = train_test_split(image_data, image_labels, test_size=0.2, random_state=42)
+                le = LabelEncoder()
+                y_train = le.fit_transform(y_train)
+                y_test = le.transform(y_test)
+
+
+                self.fit(X_train, y_train)
+                X_train, y_train = shuffle(X_train, y_train)
+                X_test, y_test = shuffle(X_test, y_test)
+                y_pred = self.predict(X_test)
+                accuracy = self.accuracy(y_test, y_pred)
+
+                print(f"Final batch complete. Accuracy: {accuracy:.2f}")
+

@@ -4,6 +4,10 @@ import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from object_detector import NaiveBayes
+
+is_person = NaiveBayes()
+is_person.train()
 
 def setup_camera(camera_index=0):
     """Initialize the camera and video writer"""
@@ -76,6 +80,7 @@ def main():
 
             if motion_detected:
                 (x, y, w, h) = bbox
+                
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 if not detected_motion:
                     print("Motion detected! Started recording.")
