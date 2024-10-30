@@ -63,15 +63,15 @@ class NaiveBayes:
                 prior = features['prior']
                 joint_probs[class_name] = prior * prob
             MAP = max(joint_probs, key=joint_probs.get)
-            print(MAP)
-            MAPs.append("person" if MAP >= 0.50 else "object")
+            # MAPs.append("person" if MAP >= 0.50 else "object")
+            MAPs.append(MAP)
             
         return MAPs
 
-    def accuracy(self, y_test, y_real):
+    def accuracy(self, y_test, y_pred):
         corr = 0
 
-        for y_t, y_p in zip(y_test, y_real):
+        for y_t, y_p in zip(y_test, y_pred):
             if y_t == y_p:
                 corr += 1
         return corr / len(y_test)
@@ -106,25 +106,23 @@ class NaiveBayes:
                     self.fit(X_train, y_train)
 
                     y_pred = self.predict(X_test)
-                    accuracy = accuracy_score(y_test, y_pred)
+                    accuracy = self.accuracy(y_test, y_pred)
 
                     print(f"Batch complete. Accuracy: {accuracy:.2f}")
 
                     image_data = []
                     image_labels = []
+        if image_data:
+            X_train, X_test, y_train, y_test = train_test_split(image_data, image_labels, test_size=0.2, random_state=42)
+            le = LabelEncoder()
+            y_train = le.fit_transform(y_train)
+            y_test = le.transform(y_test)
 
-            if image_data:
-                X_train, X_test, y_train, y_test = train_test_split(image_data, image_labels, test_size=0.2, random_state=42)
-                le = LabelEncoder()
-                y_train = le.fit_transform(y_train)
-                y_test = le.transform(y_test)
+            self.fit(X_train, y_train)
+            X_train, y_train = shuffle(X_train, y_train)
+            X_test, y_test = shuffle(X_test, y_test)
+            y_pred = self.predict(X_test)
+            accuracy = self.accuracy(y_test, y_pred)
 
-
-                self.fit(X_train, y_train)
-                X_train, y_train = shuffle(X_train, y_train)
-                X_test, y_test = shuffle(X_test, y_test)
-                y_pred = self.predict(X_test)
-                accuracy = self.accuracy(y_test, y_pred)
-
-                print(f"Final batch complete. Accuracy: {accuracy:.2f}")
+            print(f"Final batch complete. Accuracy: {accuracy:.2f}")
 
