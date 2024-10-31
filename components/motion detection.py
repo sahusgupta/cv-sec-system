@@ -4,16 +4,12 @@ import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from object_detector import NaiveBayes
 from sklearn.preprocessing import LabelEncoder
 from PIL import Image
-is_person = NaiveBayes()
-is_person.train()
-image_data = [np.array(Image.open('../WIN_20241030_11_42_34_Pro.jpg').resize((64, 64))).flatten().tolist()]
-is_person_prediction = is_person.predict(image_data)[0]
-print("person" if is_person_prediction >= 0.5 else "object")
+
 def setup_camera(camera_index=0):
     """Initialize the camera and video writer"""
+    cv2.startWindowThread()
     cap = cv2.VideoCapture(camera_index)
 
     if not cap.isOpened():
@@ -54,22 +50,13 @@ def plot_contours(plot, frame, contours):
     plt.axis('off')
     plt.draw()
     plt.pause(0.001)
-def process_image(frame, bbox):
-    (x, y, w, h) = bbox
-    roi = frame[y:y+h, x:x+w]
-    roi = cv2.resize(roi, (64, 64))
-    image_data = [np.array(roi).flatten().tolist()]
-    is_person_prediction = is_person.predict(image_data)[0]
-    if is_person_prediction == 'person':
-        return (0, 0, 0)
-        cv2.imwrite(f'person_detected_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jpg', roi)
-    else:
-        return (0, 0, 255)
+
 def main():
+    hog = cv2.HOGDescriptor()
+    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
     last_frame = None
     detected_motion = False
     frame_rec_count = 0
-    MAX_FRAMES = 240
     fig, ax = plt.subplots(figsize=(8, 6))
     try:
         cap, out = setup_camera()
@@ -88,25 +75,31 @@ def main():
 
             motion_detected, bbox, contours = detect_motion(frame, last_frame)
             last_frame = gray
+            boxes1, weights = hog.detectMultiScale(frame, winStride=(8,8) )
+
+            boxes1 = np.array([[x, y, x + w, y + h] for (x, y, w, h) in boxes1])
+
+            for (xA, yA, xB, yB) in boxes1:
+                # display the detected boxes in the colour picture
+                cv2.rectangle(frame, (xA, yA), (xB, yB), (255, 0, 0), 2)              
 
             if motion_detected:
                 (x, y, w, h) = bbox
-                color = process_image(frame, bbox)
-                plot_contours(ax, frame, contours)                
-                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 if not detected_motion:
                     print("Motion detected! Started recording.")
                     detected_motion = True
-                plot_contours(ax, frame, contours)
+                if frame_rec_count % 10 == 0 and frame_rec_count > 0:
+                    plot_contours(ax, frame, contours)
 
             cv2.imshow('Motion Detection', frame)
-
+            frame_rec_count += 1
             # Exit conditions
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 print("User requested exit")
                 plt.savefig('motion_detection.png')
                 break
-
+            
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
