@@ -8,8 +8,42 @@ Generate natural language descriptions of events
 Respond to text queries about past events
 Provide real-time alerts with AI-generated explanations
 
-
-
+Week 1: Setup and Basic Motion Detection (Done)
+    - Reading: OpenCV documentation
+    - Project: Basic Motion Detection and env setup
+Week 2: Researching LLM Architecture (In progress)
+    - Reading: "Scalable MatMul-Free LLMs"
+    - Project: Recreate the experiment from the central paper
+Week 3: Researching CNN Operations and Activation Functions
+    - Reading: activation functions for neural nets and neural nets from scratch
+    - Project: idk yet but i need to learn it
+Week 4: Construct Transformer For LLM
+    - Reading: building transformers from scratch
+    - Project: implement the transformer for AI-generated descriptions
+Week 5: Databasing for Past Events
+    - Reading: None
+    - Project: Setup Postgres / Firebase database for logging events
+Week 6: Facial Recognition
+    - Reading: what are MTCNNs?
+    - Project: Build a face recognizer to detect unknown faces and identify known people
+Week 7: Action Detection
+    - Reading:
+    - Project:
+Week 8: Alert System
+    - Reading: None
+    - Project: Send notifications to host device or to phone if suspicious activity occurs
+Week 9: Multi-Modality
+    - Reading: API protocol
+    - Project: API to connect all of the resources and allows cross-communication
+Week 10: Dashboard
+    - Reading: Streamlit documentation
+    - Project: Build a dashboard that integrates all of the features made in a clean way
+Week 11: Optimization and Cleanup
+    - Reading: Fine-tuning LLMs and Neural Nets, Simplifying overtly time complex algorithms
+    - Project: Cleanup all of the sloppy code in the project and improve performance
+Week 12: Deployment
+    - Reading: How to deploy project for production
+    - Project: Deploy for commercial use
 Tools:
 - Pytorch
 - OpenCV
