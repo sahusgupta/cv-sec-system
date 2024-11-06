@@ -29,7 +29,7 @@ MarkupSafe==2.1.5
 matplotlib==3.9.2
 mdurl==0.1.2
 narwhals==1.9.1
-numpy==2.1.1
+numpy<2
 openai==1.51.0
 opencv-python==4.10.0.84
 packaging==24.1
