@@ -27,8 +27,8 @@ Week 6: Facial Recognition
     - Reading: what are MTCNNs?
     - Project: Build a face recognizer to detect unknown faces and identify known people
 Week 7: Action Detection
-    - Reading:
-    - Project:
+    - Reading: None
+    - Project: classify suspicious events
 Week 8: Alert System
     - Reading: None
     - Project: Send notifications to host device or to phone if suspicious activity occurs
