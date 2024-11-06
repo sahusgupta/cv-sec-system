@@ -1,3 +1,7 @@
+import psycopg2 as pg
+
+
+
 class Event:
     def __init__(self, time: str, type: str, notes: str, cam: int, capture: str):
         self.timestamp = time
@@ -5,7 +9,7 @@ class Event:
         self.notes = ''
         self.cam = cam
         self.capture = capture 
-
+                                                            
     def __list__(self):
         return [self.timestamp, self.type, self.notes, self.cam, self.capture]
     
@@ -16,7 +20,7 @@ class Event:
 
 class EventManager:
     def __init__(self):
-        self.data: list = []
+        self.data: list[Event] = []
 
     
     def log(self, data):

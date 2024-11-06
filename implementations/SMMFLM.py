@@ -33,6 +33,7 @@ class MatMulFreeLLM:
         dW = np.cross(np.transpose(dO), Ybar)
         db = sum(dO)
         return dX, dW, db
+    
     def rms_back(self, dY, mean, var, r):
         Ybar = self.activation_quantization()
         dvar = np.sum(np.cross(np.cross(dY, (self.X - mean), np.cross(-0.5, r ** 3))))

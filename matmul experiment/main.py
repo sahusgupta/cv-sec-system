@@ -2,11 +2,10 @@ import torch
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Updated model list with more commonly supported models
 model_names = [
     "gpt2-medium",
     "facebook/opt-350m",
-    "EleutherAI/pythia-160m"  # Replaced MMfreeLM with a more standard model
+    "EleutherAI/pythia-160m"  
 ]
 
 # Remove .cuda() calls and keep models in CPU
@@ -25,7 +24,6 @@ for name in model_names:
     except Exception as e:
         print(f"Error loading {name}: {str(e)}")
 
-# Set pad tokens for tokenizers
 for tokenizer in tokenizers:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -60,7 +58,6 @@ def performance(model, tokenizer, prompt):
 prompt = "Explain how to write an introductory program in python?"  # example prompt
 results = {}
 
-# Only process models that were successfully loaded
 for name, model, tokenizer in zip(model_names[:len(models)], models, tokenizers):
     print(f"\nProcessing {name}...")
     try:
@@ -77,7 +74,7 @@ for name, model, tokenizer in zip(model_names[:len(models)], models, tokenizers)
     except Exception as e:
         print(f"Error processing {name}: {str(e)}")
 
-# Print summary of results
+# Print summary
 print("\nSummary of Results:")
 for name, result in results.items():
     print(f"\n{name}:")
