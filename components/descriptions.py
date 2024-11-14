@@ -21,8 +21,8 @@ class MultiHeadAttention(nn.Module):
 
     def dot_prod_attention(self, Q, K, V, mask=None):
         attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
-        if mask:
-            attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
+        if mask is not None:
+            attn_scores = attn_scores.masked_fill(mask == 0, 1e-9)
         attn_probs = torch.softmax(attn_scores, dim=1)
         out = torch.matmul(attn_probs, V)
         return out
@@ -64,7 +64,6 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(pos * div_term)
         pe[:, 1::2] = torch.cos(pos*div_term)
-        self.pe = pe
         self.register_buffer('pe', pe.unsqueeze(0))
 
     def forward(self, x):
@@ -87,7 +86,7 @@ class EncoderLayer(nn.Module):
         return x
     
 class DecoderLayer(nn.Module):
-    def __init__(self, *d_model, num_heads, d_ff, dropout):
+    def __init__(self, d_model, num_heads, d_ff, dropout):
         super(DecoderLayer, self).__init__()
         self.self_attn = MultiHeadAttention(d_model, num_heads)
         self.cross_attn = MultiHeadAttention(d_model, num_heads)
@@ -121,9 +120,59 @@ class Transformer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def generate_mask(self, src, tgt):
-        src_mask = (src != 0).unsqueeze(1).unsqueeze(2)
-        tgt_mask = (tgt != 0).unsqueeze(1).unsqueeze(2)
-        seq_len = tgt.size(1)
-        nopeak_mask = (1 - torch.triu(torch.ones(1, seq_len, seq_len), diagonal=1)).bool()
-        tgt_mask = tgt_mask & nopeak_mask
+        batch_size, src_len = src.size()
+        batch_size, tgt_len = tgt.size()
+
+        # Source mask
+        src_mask = (src != 0).unsqueeze(1).unsqueeze(2)  # (batch_size, 1, 1, src_len)
+
+        # Target mask
+        tgt_mask = torch.triu(torch.ones((tgt_len, tgt_len), device=src.device), diagonal=1).bool()
+        tgt_mask = tgt_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, tgt_len, tgt_len)
+        tgt_mask = tgt_mask.expand(batch_size, 1, -1, -1)  # (batch_size, 1, tgt_len, tgt_len)
+
         return src_mask, tgt_mask
+    
+    def forward(self, src, tgt):
+        src_mask, tgt_mask = self.generate_mask(src, tgt)
+        src_embedded = self.dropout(self.pos_encoding(self.encoder_embed(src)))
+        tgt_embedded = self.dropout(self.pos_encoding(self.decoder_embed(src)))
+
+        enc_out = src_embedded
+        for enc_layer in self.encoder_layers:
+            enc_out = enc_layer(enc_out, src_mask)
+        
+        dec_out = tgt_embedded
+        for dec_layer in self.decoder_layers:
+            dec_out = dec_layer(dec_out, enc_out, src_mask, tgt_mask)
+        
+        out = self.fc(dec_out)
+        return out
+    
+src_vocab_size = 5000
+tgt_vocab_size = 5000
+d_model = 512
+num_heads = 8
+num_layers = 6
+d_ff = 2048
+max_seq_length = 100
+dropout = 0.1
+
+transformer = Transformer(src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
+
+# Generate random sample data
+src_data = torch.randint(1, src_vocab_size, (64, max_seq_length))  # (batch_size, seq_length)
+tgt_data = torch.randint(1, tgt_vocab_size, (64, max_seq_length))  # (batch_size, seq_length)
+
+crit = nn.CrossEntropyLoss(ignore_index=0)
+optim = opt.Adam(transformer.parameters(), lr=.0001, betas=(.9, .98), eps=1e-9)
+
+transformer.train()
+
+for epoch in range(100):
+    optim.zero_grad()
+    out = transformer(src_data, tgt_data[:, :-1])
+    loss = crit(out.contiguous().view(-1, tgt_vocab_size), tgt_data[:, 1:].contiguous().view(-1))
+    loss.backward()
+    optim.step()
+    print(f"Epoch: {epoch + 1}: Loss: {loss.item()}")
