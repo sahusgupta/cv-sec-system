@@ -8,7 +8,6 @@ model_names = [
     "EleutherAI/pythia-160m"  
 ]
 
-# Remove .cuda() calls and keep models in CPU
 models = []
 tokenizers = []
 

@@ -52,7 +52,7 @@ def resize_image(image, target_size):
 
 
 plt.figure(figsize=(10,5))
-for i in range(5):
+for i in range():
     plt.subplot(1, 5, i+1)
     plt.grid(False)
     plt.xticks([])
