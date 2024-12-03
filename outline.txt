@@ -11,10 +11,10 @@ Provide real-time alerts with AI-generated explanations
 Week 1: Setup and Basic Motion Detection (Done)
     - Reading: OpenCV documentation
     - Project: Basic Motion Detection and env setup
-Week 2: Researching LLM Architecture (In progress)
-    - Reading: "Scalable MatMul-Free LLMs"
+Week 2: Researching LLM Architecture (Done)
+    - Reading: "Scalable MatMul-Free LLMs" 
     - Project: Recreate the experiment from the central paper
-Week 3: Researching CNN Operations and Activation Functions
+Week 3: Researching CNN Operations and Activation Functions (Done)
     - Reading: activation functions for neural nets and neural nets from scratch
     - Project: idk yet but i need to learn it
 Week 4: Construct Transformer For LLM
