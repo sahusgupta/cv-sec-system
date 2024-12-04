@@ -23,11 +23,9 @@ class RouterTransformer(nn.Module):
         # Forward pass.
         outputs = self.forward(src, tgt)
 
-        # Reshape for loss calculation (batch_size * seq_len, vocab_size).
         outputs = outputs.view(-1, outputs.size(-1))
         tgt_labels = tgt_labels.view(-1)
 
-        # Compute loss.
         loss = loss_fn(outputs, tgt_labels)
         loss.backward()  # Backpropagation.
         optimizer.step()  # Update weights.

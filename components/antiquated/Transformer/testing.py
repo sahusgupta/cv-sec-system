@@ -9,11 +9,10 @@ class FacialCorpusProcessor:
         self.embedding_model = AutoModel.from_pretrained(model_path)
         self.max_length = max_length
 
-    def load_corpus(self, corpus_path='facial_structure_corpus.md'):
+    def load_corpus(self, corpus_path='data.txt'):
         with open(corpus_path, 'r') as f:
             corpus_text = f.read()
         
-        # Split corpus into semantic chunks
         segments = corpus_text.split('\n\n')
         return [seg for seg in segments if len(seg.split()) > 10]
 
@@ -40,13 +39,11 @@ class FacialCorpusProcessor:
     def prepare_training_data(self, embeddings, labels=None):
 
         if labels is None:
-            # Generate dummy labels if not provided
             labels = torch.randint(0, 10, (embeddings.size(0),))
         
-        # Ensure data is in correct format for RouterTransformer
         return {
             'src': embeddings,
-            'tgt': embeddings,  # Using same embeddings for target
+            'tgt': embeddings,
             'labels': labels
         }
 
