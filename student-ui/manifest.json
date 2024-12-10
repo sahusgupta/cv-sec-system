@@ -1,24 +1,10 @@
 {
     "manifest_version": 3,
-    "name": "My Chrome Extension",
+    "name": "Sys1",
     "version": "1.0.0",
-    "description": "A simple Chrome extension",
-    "icons": {
-      "16": "src/assets/icon.png",
-      "48": "src/assets/icon.png",
-      "128": "src/assets/icon.png"
-    },
+    "description": "Captures screen content and customizably restricts browser capabilities for ",
     "action": {
-      "default_popup": "src/popup/popup.html",
-      "default_icon": {
-        "16": "src/assets/icon.png",
-        "48": "src/assets/icon.png",
-        "128": "src/assets/icon.png"
-      }
-    },
-    "background": {
-      "service_worker": "src/background/background.js"
-    },
+      "default_title": "React Chrome Extension"},
     "permissions": [
       "activeTab",
       "tabs",
