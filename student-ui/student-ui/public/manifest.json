@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Sys1",
+  "version": "1.0",
+  "description": "real-time exam proctoring",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  }
+}
