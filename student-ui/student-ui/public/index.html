@@ -1,11 +1,167 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Chrome Extension</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Session Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 300px;
+            padding: 16px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .preview {
+            width: 100%;
+            height: 120px;
+            background: #eee;
+            margin: 8px 0;
+            border-radius: 4px;
+        }
+
+        .status-container {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .status-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-inactive {
+            background: #fafafa;
+            color: #757575;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .camera-container {
+            margin: 16px 0;
+        }
+
+        .permissions-warning {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .info-text {
+            font-size: 0.9em;
+            color: #666;
+            margin: 8px 0;
+        }
+
+        .exam-info {
+            margin: 16px 0;
+            padding: 12px;
+            background: #e3f2fd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Exam Session Monitor</h2>
+            <p>Automatically monitors during Canvas quizzes</p>
+        </div>
+
+        <div class="status-container status-inactive" id="examStatus">
+            <strong>No active exam detected</strong>
+        </div>
+
+        <div class="camera-container">
+            <video id="cameraPreview" class="preview" autoplay muted></video>
+            <div class="info-text">Camera preview</div>
+        </div>
+
+        <div id="examInfo" class="exam-info" style="display: none;">
+            <strong>Current Exam:</strong>
+            <div id="examName">-</div>
+            <div id="examDuration">-</div>
+        </div>
+
+        <div id="permissionsWarning" class="permissions-warning" style="display: none;">
+            Camera access required for exam monitoring
+        </div>
+
+        <div class="info-text">
+            <p>This extension will:</p>
+            <ul>
+                <li>Automatically detect when you start a Canvas quiz</li>
+                <li>Begin monitoring only during active exam sessions</li>
+                <li>Stop automatically when you submit your exam</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let cameraStream = null;
+
+        // Initialize camera preview
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('cameraPreview').srcObject = stream;
+                cameraStream = stream;
+                document.getElementById('permissionsWarning').style.display = 'none';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                document.getElementById('permissionsWarning').style.display = 'block';
+            }
+        }
+
+        // Listen for messages from the background script about exam status
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (message.type === 'examStatus') {
+                updateExamStatus(message.data);
+            }
+        });
+
+        function updateExamStatus(examData) {
+            const statusContainer = document.getElementById('examStatus');
+            const examInfo = document.getElementById('examInfo');
+
+            if (examData.isActive) {
+                statusContainer.className = 'status-container status-active';
+                statusContainer.innerHTML = '<strong>Exam in Progress</strong>';
+                
+                examInfo.style.display = 'block';
+                document.getElementById('examName').textContent = examData.name || 'Untitled Quiz';
+                document.getElementById('examDuration').textContent = `Time remaining: ${examData.timeRemaining || 'N/A'}`;
+            } else {
+                statusContainer.className = 'status-container status-inactive';
+                statusContainer.innerHTML = '<strong>No active exam detected</strong>';
+                examInfo.style.display = 'none';
+            }
+        }
+
+        // Initialize the extension
+        document.addEventListener('DOMContentLoaded', () => {
+            setupCamera();
+        });
+    </script>
+</body>
 </html>
