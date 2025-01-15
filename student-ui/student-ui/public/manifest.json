@@ -6,7 +6,8 @@
   "permissions": [
     "tabs",
     "storage",
-    "activeTab"
+    "activeTab",
+    "desktopCapture"
   ],
   "action": {
     "default_popup": "index.html",
@@ -15,5 +16,16 @@
       "48": "icon48.png",
       "128": "icon128.png"
     }
-  }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "host_permissions": [
+    "*://*.instructure.com/*"
+  ]
 }
+
+  
+
+
+
