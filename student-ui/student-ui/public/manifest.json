@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Sys1",
+  "name": "Sys1", 
   "version": "1.0",
   "description": "real-time exam proctoring",
   "permissions": [
