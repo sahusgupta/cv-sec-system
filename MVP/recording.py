@@ -1,5 +1,5 @@
 import pyautogui as pag
-import cv2
+import cv2  
 import numpy as np
 import ctypes
 
@@ -9,7 +9,7 @@ width = user32.GetSystemMetrics(0)
 height = user32.GetSystemMetrics(1)
 
 # Initialize webcam
-webcam = cv2.VideoCapture(0)  # 0 is usually the default webcam
+webcam = cv2.VideoCapture(0) 
 webcam_width = int(webcam.get(cv2.CAP_PROP_FRAME_WIDTH))
 webcam_height = int(webcam.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
