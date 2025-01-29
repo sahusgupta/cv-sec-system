@@ -1,0 +1,4 @@
+- Follow up with instructure about application
+- Restrict copy-paste and new tabs
+- AI processing frames
+- cloud storage solutions
