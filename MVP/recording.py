@@ -22,7 +22,7 @@ codec = cv2.VideoWriter.fourcc(*"mp4v")
 filename = "Out.mp4"
 fps = 30.0
 out = cv2.VideoWriter(filename, codec, fps, resolution)
-cv2.namedWindow("Monitoring", cv2.WINDOW_FREERATIO)
+# cv2.namedWindow("Monitoring", cv2.WINDOW_FREERATIO)
 
 while True:
     img = np.array(pag.screenshot())
@@ -42,12 +42,11 @@ while True:
               x_offset:x_offset+overlay_width] = webcam_frame
     
     out.write(frame)
-    cv2.imshow("Monitoring", frame)
+    # cv2.imshow("Monitoring", frame)
     
     if cv2.waitKey(1) == ord('q'):
         break
 
-# Clean up
 webcam.release()
 out.release()
 cv2.destroyAllWindows()
