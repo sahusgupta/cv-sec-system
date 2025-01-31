@@ -6,7 +6,7 @@ def add_school(district, school):
     proj = client.common_project_path("_")
     bucket_path = f"{proj}/buckets/{district}"
 
-    req = storage_control_v2.CreateFolderRequest(parent=bucket_path, folder_id=district)
+    req = storage_control_v2.CreateFolderRequest(parent=bucket_path, folder_id=school)
     resp = client.create_folder(request=req)
     return resp
 

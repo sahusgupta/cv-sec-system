@@ -28,7 +28,7 @@ def list_teachers(district, school):
         api_request=gcs._connection.api_request,
         path=path,
         items_key='prefixes',
-        item_to_value=lambda _, item: item.rstrip('/').split('/')[-1],
+        item_to_value=lambda _, item: item.rstrip('/').split('/')[-2],
         extra_params=extra_params,
     )
 
