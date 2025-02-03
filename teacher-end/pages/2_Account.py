@@ -1,67 +1,115 @@
+
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from datetime import datetime, timedelta
 
+# Set page config
 st.set_page_config(layout="wide", page_title="Classroom Proctor Hub", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+        background: black;
+        color: white;
     }
     .session-card {
-        background: white;
+        background: black;
         border-radius: 15px;
         padding: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         margin: 1rem 0;
-        border-left: 5px solid #4361ee;
+        border-left: 5px solid #64B5F6;
+        color: white;
     }
     .violation-card {
-        background: #fff1f1;
+        background: black;
         border-radius: 12px;
         padding: 1rem;
         margin: 0.5rem 0;
         border-left: 4px solid #ff4444;
         transition: all 0.3s ease;
+        color: white;
     }
     .violation-card:hover {
         transform: translateX(5px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
     .metric-card {
-        background: white;
+        background: black;
         border-radius: 12px;
         padding: 1.2rem;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        color: white;
     }
     .metric-value {
         font-size: 24px;
         font-weight: bold;
-        color: #4361ee;
+        color: #ffffff;
     }
     .metric-label {
-        color: #666;
+        color: white;
         font-size: 14px;
     }
     .custom-tab {
-        background: #ffffff;
+        background: black;
         padding: 20px;
         border-radius: 15px;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+        color: white;
     }
     .welcome-header {
-        background: linear-gradient(120deg, #4361ee, #3f37c9);
+        background: black;
         color: white;
         padding: 2rem;
         border-radius: 15px;
         margin-bottom: 2rem;
     }
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: black;
+    }
+    .stSidebar {
+        background: black;
+    }
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        background: black;
+        border-radius: 15px;
+        padding: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: white;
+    }
+    /* Support contact box */
+    div[style*="background: black"] {
+        background: black !important;
+        color: white;
+    }
+    /* Additional text color adjustments */
+    p, h1, h2, h3, h4, h5, h6 {
+        color: white;
+    }
+    .stMarkdown {
+        color: white;
+    }
+    /* Button styling */
+    .stButton > button {
+        background: black;
+        color: white;
+        border: 1px solid #64B5F6;
+    }
+    .stButton > button:hover {
+        background: black;
+        border: 1px solid #ffffff;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+
+# Welcome Header
 st.markdown("""
     <div class="welcome-header">
         <h1>📚 Classroom Proctor Hub</h1>
@@ -69,6 +117,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# Quick Stats Cards
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.markdown("""
@@ -99,6 +148,7 @@ with col4:
         </div>
     """, unsafe_allow_html=True)
 
+# Main navigation with enhanced styling
 tab1, tab2, tab3 = st.tabs(["🎥 Live Sessions", "📅 Scheduled Exams", "📊 Past Sessions"])
 
 with tab1:
@@ -107,6 +157,7 @@ with tab1:
     with col1:
         st.subheader("📍 Active Monitoring")
         
+        # Active sessions with enhanced cards
         active_sessions = {
             "Advanced Mathematics Final": {
                 "students": 45,
@@ -155,6 +206,7 @@ with tab1:
 with tab2:
     st.subheader("📝 Exam Schedule")
     
+    # Enhanced exam scheduling form
     with st.expander("✨ Schedule New Exam"):
         col1, col2 = st.columns(2)
         with col1:
@@ -169,6 +221,7 @@ with tab2:
             st.text_area("📝 Additional Instructions")
             st.button("🎯 Schedule Exam", type="primary")
 
+    # Upcoming exams visualization
     scheduled_exams = pd.DataFrame({
         'Exam': ['Mathematics 101', 'Physics 202', 'Chemistry 303'],
         'Date': pd.date_range(start='2024-02-01', periods=3),
@@ -196,9 +249,11 @@ with tab2:
     
     st.plotly_chart(fig, use_container_width=True)
 
+# Sidebar with enhanced styling
 with st.sidebar:
     st.markdown("### 🎓 Professor Dashboard")
     
+    # Profile section
     st.markdown("""
         <div style="text-align: center; padding: 1rem;">
             <img src="https://via.placeholder.com/100" style="border-radius: 50%; margin-bottom: 1rem;">
@@ -209,6 +264,7 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Quick actions
     st.subheader("⚡ Quick Actions")
     if st.button("🆕 Start New Exam"):
         st.session_state.show_setup = True
@@ -219,6 +275,7 @@ with st.sidebar:
         
     st.markdown("---")
     
+    # Settings with icons
     st.subheader("⚙️ Proctor Settings")
     st.checkbox("🔍 Auto-flag suspicious behavior", value=True)
     st.slider("🎚️ Detection Sensitivity", 1, 5, 3)
@@ -226,6 +283,7 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Support contact
     st.markdown("""
         <div style="background: #f8f9fa; padding: 1rem; border-radius: 10px;">
             <h4>📞 Need Help?</h4>
