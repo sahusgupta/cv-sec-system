@@ -1,11 +1,12 @@
-- Follow up with instructure about application
-- Restrict copy-paste and new tabs
-- AI processing frames
-- cloud storage solutions
+- Follow up with instructure about application (DONE)
+- Restrict copy-paste (DONE)
+- log when app loses focus
+- AI processing frames 
+- cloud storage solutions (DONE)
 
 
 Later:
-- restrict to only one monitor at all times
+- restrict to only one monitor at all times and limit one tab
 - show when exam loses focus
 - timeline of events
 
