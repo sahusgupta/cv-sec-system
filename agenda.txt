@@ -6,7 +6,7 @@
 
 
 Later:
-- restrict to only one monitor at all times and limit one tab
+- restrict to only one monitor at all times (DONE) and limit one tab
 - show when exam loses focus
 - timeline of events
 

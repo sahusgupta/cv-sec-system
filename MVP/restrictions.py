@@ -1,5 +1,8 @@
 import keyboard, time
+import screeninfo
 
+def one_display():
+    return len(screeninfo.get_monitors()) == 1
 
 def on_exam_start():
     def log(keycode):
