@@ -1,9 +1,7 @@
 import streamlit as st
 
-# Set page configuration
 st.set_page_config(layout="wide", page_title="Home - Classroom Proctor Hub")
 
-# Custom CSS for dark mode and styling
 st.markdown("""
     <style>
     .stApp {
@@ -59,11 +57,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Header
+
 st.markdown("<h1 class='home-title'>🏫 Sys </h1>", unsafe_allow_html=True)
 st.markdown("<p class='home-subtitle'>Effortlessly manage academic integrity with real-time monitoring, reports, and powerful settings.</p>", unsafe_allow_html=True)
 
-# Quick Stats Overview
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.markdown("<div class='metric-card'><div class='metric-value'>2</div><div class='metric-label'>Total Districts</div></div>", unsafe_allow_html=True)
@@ -90,7 +87,6 @@ with col3:
 
 st.markdown("---")
 
-# Recent Activity
 st.subheader("📌 Recent Activity")
 recent_activities = [
     "🚨 John Doe triggered an alert for tab switching.",
@@ -104,7 +100,6 @@ for activity in recent_activities:
 
 st.markdown("---")
 
-# Announcements & Updates
 st.subheader("📢 Announcements")
 st.markdown("""
     - **New Feature**: AI-powered plagiarism detection is now live! 🚀  
@@ -113,7 +108,6 @@ st.markdown("""
 
 st.markdown("---")
 
-# Support Section
 with st.container():
     st.subheader("💬 Need Help?")
     st.text("Support Email: sahus@sysproctoring.com")

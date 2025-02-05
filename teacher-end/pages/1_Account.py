@@ -5,7 +5,6 @@ import plotly.express as px
 import pandas as pd
 from datetime import datetime, timedelta
 
-# Set page config
 st.set_page_config(layout="wide", page_title="Classroom Proctor Hub", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -108,8 +107,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
-# Welcome Header
 st.markdown("""
     <div class="welcome-header">
         <h1>📚 Classroom Proctor Hub</h1>
@@ -117,7 +114,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Quick Stats Cards
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.markdown("""
@@ -148,7 +144,6 @@ with col4:
         </div>
     """, unsafe_allow_html=True)
 
-# Main navigation with enhanced styling
 tab1, tab2, tab3 = st.tabs(["🎥 Live Sessions", "📅 Scheduled Exams", "📊 Past Sessions"])
 
 with tab1:
@@ -157,7 +152,6 @@ with tab1:
     with col1:
         st.subheader("📍 Active Monitoring")
         
-        # Active sessions with enhanced cards
         active_sessions = {
             "Advanced Mathematics Final": {
                 "students": 45,
@@ -206,7 +200,6 @@ with tab1:
 with tab2:
     st.subheader("📝 Exam Schedule")
     
-    # Enhanced exam scheduling form
     with st.expander("✨ Schedule New Exam"):
         col1, col2 = st.columns(2)
         with col1:
@@ -221,7 +214,6 @@ with tab2:
             st.text_area("📝 Additional Instructions")
             st.button("🎯 Schedule Exam", type="primary")
 
-    # Upcoming exams visualization
     scheduled_exams = pd.DataFrame({
         'Exam': ['Mathematics 101', 'Physics 202', 'Chemistry 303'],
         'Date': pd.date_range(start='2024-02-01', periods=3),
@@ -249,11 +241,9 @@ with tab2:
     
     st.plotly_chart(fig, use_container_width=True)
 
-# Sidebar with enhanced styling
 with st.sidebar:
     st.markdown("### 🎓 Professor Dashboard")
     
-    # Profile section
     st.markdown("""
         <div style="text-align: center; padding: 1rem;">
             <img src="https://via.placeholder.com/100" style="border-radius: 50%; margin-bottom: 1rem;">
@@ -264,7 +254,6 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Quick actions
     st.subheader("⚡ Quick Actions")
     if st.button("🆕 Start New Exam"):
         st.session_state.show_setup = True
@@ -275,7 +264,6 @@ with st.sidebar:
         
     st.markdown("---")
     
-    # Settings with icons
     st.subheader("⚙️ Proctor Settings")
     st.checkbox("🔍 Auto-flag suspicious behavior", value=True)
     st.slider("🎚️ Detection Sensitivity", 1, 5, 3)
@@ -283,7 +271,6 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Support contact
     st.markdown("""
         <div style="background: #f8f9fa; padding: 1rem; border-radius: 10px;">
             <h4>📞 Need Help?</h4>

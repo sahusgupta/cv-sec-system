@@ -1,9 +1,7 @@
 import streamlit as st
 
-# Set page configuration
 st.set_page_config(layout="wide", page_title="Settings - Classroom Proctor Hub")
 
-# Custom CSS for dark mode styling
 st.markdown("""
     <style>
     .stApp {
@@ -41,7 +39,6 @@ st.markdown("""
 
 st.markdown("<h1 class='settings-title'>⚙️ Settings</h1>", unsafe_allow_html=True)
 
-# General Settings
 with st.container():
     st.markdown("<div class='settings-container'>", unsafe_allow_html=True)
     st.subheader("🔧 General Settings")
@@ -50,7 +47,6 @@ with st.container():
     language = st.selectbox("🌎 Language", ["English", "Spanish", "French", "German"])
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Proctoring Settings
 with st.container():
     st.markdown("<div class='settings-container'>", unsafe_allow_html=True)
     st.subheader("🎥 Proctoring Settings")
@@ -61,7 +57,6 @@ with st.container():
     audio_monitoring = st.toggle("🎙️ Enable Audio Monitoring", value=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Account Settings
 with st.container():
     st.markdown("<div class='settings-container'>", unsafe_allow_html=True)
     st.subheader("👤 Account Settings")
@@ -71,7 +66,6 @@ with st.container():
     st.button("💾 Save Changes")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Support Section
 with st.container():
     st.markdown("<div class='settings-container'>", unsafe_allow_html=True)
     st.subheader("📞 Support")
