@@ -5,7 +5,7 @@ import plotly.express as px
 import pandas as pd
 from datetime import datetime, timedelta
 
-st.set_page_config(layout="wide", page_title="Classroom Proctor Hub", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="Sys", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>

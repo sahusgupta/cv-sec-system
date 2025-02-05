@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(layout="wide", page_title="Home - Classroom Proctor Hub")
+st.set_page_config(layout="wide", page_title="Home - Sys")
 
 st.markdown("""
     <style>
