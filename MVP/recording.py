@@ -2,7 +2,7 @@ import pyautogui as pag
 import cv2  
 import numpy as np
 import ctypes
-
+from restrictions import on_exam_start, on_exam_end
 # Get screen dimensions
 user32 = ctypes.windll.user32
 width = user32.GetSystemMetrics(0)
@@ -24,6 +24,7 @@ fps = 30.0
 out = cv2.VideoWriter(filename, codec, fps, resolution)
 # cv2.namedWindow("Monitoring", cv2.WINDOW_FREERATIO)
 
+on_exam_start()
 while True:
     img = np.array(pag.screenshot())
     frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -45,6 +46,7 @@ while True:
     # cv2.imshow("Monitoring", frame)
     
     if cv2.waitKey(1) == ord('q'):
+        on_exam_end()
         break
 
 webcam.release()
