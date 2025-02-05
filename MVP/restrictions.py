@@ -12,6 +12,7 @@ def on_exam_start():
         
     keyboard.add_hotkey('ctrl+c', lambda: log('CTRL + C'), suppress=True)
     keyboard.add_hotkey('ctrl+v', lambda: log('CTRL + V'), suppress=True)
+    keyboard.add_hotkey('ctrl+n', lambda: log('CTRL + N'), suppress=True)
     
     while not end():
         time.sleep(1)
