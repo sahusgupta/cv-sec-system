@@ -1,9 +1,7 @@
-- Follow up with instructure about application (DONE)
-- Restrict copy-paste (DONE)
 - log when app loses focus
-- AI processing frames 
-- cloud storage solutions (DONE)
-
+- AI processing frames for phones, other criteria
+- track clipboard content
+- better timelining
 
 Later:
 - restrict to only one monitor at all times (DONE) and limit one tab
