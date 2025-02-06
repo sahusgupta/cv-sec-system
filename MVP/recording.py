@@ -121,11 +121,34 @@ class CanvasProctor:
         self.is_exam_active = True
         self.monitoring = True
         
+        import random
+        # Define a frame analysis thread that calls the analyze frames function every 10-15 screenshots
+        def frame_analysis_thread():
+            from MVP.process import process_frames
+            import glob, time
+            processed_frames = set()
+            while self.monitoring and self.is_exam_active:
+                # Find all captured screenshot files matching the naming pattern
+                frames = sorted(glob.glob("exam_screenshot_*.png"))
+                # Filter for new frames that haven't been analyzed yet
+                new_frames = [f for f in frames if f not in processed_frames]
+                # Determine a random threshold between 10 and 15
+                threshold = random.randint(10, 15)
+                if len(new_frames) >= threshold:
+                    # Process only a block of threshold frames
+                    frames_to_analyze = new_frames[:threshold]
+                    result = process_frames(frames_to_analyze, criteria="Device present in camera, Multiple people present in frame, Inconsistent gaze position, turning head, frequently glancing down at lap")
+                    
+                    self.log(f"Analyzed {len(frames_to_analyze)} frames, analysis result: {result}", 'INFO')
+                    processed_frames.update(frames_to_analyze)
+                time.sleep(2)
+        
         # Start monitoring threads
         threads = [
             threading.Thread(target=self._clipboard_monitor),
             threading.Thread(target=self._screenshot_monitor),
-            threading.Thread(target=self._hotkey_monitor)
+            threading.Thread(target=self._hotkey_monitor),
+            threading.Thread(target=frame_analysis_thread)
         ]
         
         for thread in threads:
