@@ -1,134 +1,229 @@
+import os
+import requests
+import json
+import threading
+import time
 import pyautogui as pag
 import cv2
 import numpy as np
-import ctypes
-import time
 import keyboard
 import screeninfo
 import pyperclip
-import threading
+from canvasapi import Canvas
 
-class ExamMonitor:
-    def __init__(self):
+class CanvasProctor:
+    def __init__(self, canvas_url, api_key, course_id, assignment_id):
+        """        
+        :param canvas_url: Base URL of the Canvas LMS instance
+        :param api_key: Canvas API key for authentication
+        :param course_id: ID of the course containing the exam
+        :param assignment_id: ID of the specific exam assignment
+        """
+        self.canvas = Canvas(canvas_url, api_key)
+        self.course = self.canvas.get_course(course_id)
+        self.assignment = self.course.get_assignment(assignment_id)
+        
+        # Exam monitoring setup
         self.last_clipboard_content = pyperclip.paste()
         self.monitoring = False
-        self.log_file = "eventlog.txt"
-        self.screenshot_interval = 60  # Screenshot every 60 seconds
+        self.screenshot_interval = 60 
         self.last_screenshot_time = 0
+        self.out = "log.txt"
+        self.compliance_issues = []
+        self.is_exam_active = False
 
-    def log(self, event):
+    def log(self, event, severity='INFO'):
+        """
+        Log events with timestamp and severity
+        
+        :param event: Event description
+        :param severity: Severity level (INFO, WARN, CRITICAL)
+        """
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        with open(self.log_file, "a") as f:
-            f.write(f"{timestamp}: {event}\n")
+        log_entry = f"{timestamp} [{severity}]: {event}\n"
+        
+        with open(self.out, "a") as f:
+            f.write(log_entry)
+        
+        if severity == 'CRITICAL':
+            self._report_compliance_issue(event)
 
-    def clipboard_monitor(self):
-        while self.monitoring:
+    def _report_compliance_issue(self, issue_description):
+        """
+        Report compliance issue to Canvas via API or LTI
+        
+        :param issue_description: Detailed description of the compliance violation
+        """
+        try:
+            # Example: Create a comment on the assignment submission
+            submission = self.assignment.get_submission(self.student.id)
+            submission.create_submission_comment(comment=f"Proctoring Violation: {issue_description}")
+        except Exception as e:
+            self.log(f"Failed to report compliance issue: {str(e)}", 'WARN')
+
+    def validate_exam_environment(self):
+        """
+        Perform pre-exam compliance checks
+        
+        :return: Boolean indicating if environment is compliant
+        """
+        checks = [
+            self._check_single_display(),
+            self._check_allowed_applications(),
+            self._verify_student_identity()
+        ]
+        
+        return all(checks)
+
+    def _check_single_display(self):
+        """
+        Verify student is using only one display
+        
+        :return: Boolean indicating single display compliance
+        """
+        is_single_display = len(screeninfo.get_monitors()) == 1
+        if not is_single_display:
+            self.log("Multiple displays detected", 'CRITICAL')
+        return is_single_display
+
+    def _check_allowed_applications(self):
+        """
+        Verify only allowed applications are running
+        
+        :return: Boolean indicating application compliance
+        """
+        # Implement logic to check running processes
+        # Compare against a whitelist of allowed applications
+        return True
+
+    def _verify_student_identity(self):
+        """
+        Perform identity verification before exam
+        
+        :return: Boolean indicating successful identity verification
+        """
+        # Implement facial recognition or other identity checks
+        # Potentially integrate with Canvas user profile or external ID service
+        return True
+
+    def start_exam_monitoring(self, student):
+        """
+        Begin comprehensive exam monitoring
+        
+        :param student: Canvas student object
+        """
+        self.student = student
+        
+        if not self.validate_exam_environment():
+            self.log("Exam environment non-compliant", 'CRITICAL')
+            return False
+        
+        self.is_exam_active = True
+        self.monitoring = True
+        
+        # Start monitoring threads
+        threads = [
+            threading.Thread(target=self._clipboard_monitor),
+            threading.Thread(target=self._screenshot_monitor),
+            threading.Thread(target=self._hotkey_monitor)
+        ]
+        
+        for thread in threads:
+            thread.start()
+        
+        return True
+
+    def _clipboard_monitor(self):
+        """
+        Monitor clipboard for suspicious activity
+        """
+        while self.monitoring and self.is_exam_active:
             try:
                 current_clipboard = pyperclip.paste()
                 if current_clipboard != self.last_clipboard_content:
-                    self.log(f"CLIPBOARD_CHANGE: {current_clipboard}")
+                    self.log(f"Clipboard change detected: {current_clipboard}", 'WARN')
                     self.last_clipboard_content = current_clipboard
                 time.sleep(0.5)
             except Exception as e:
-                self.log(f"CLIPBOARD_MONITOR_ERROR: {str(e)}")
-                break
+                self.log(f"Clipboard monitoring error: {str(e)}", 'WARN')
 
-    def one_display(self):
-        return len(screeninfo.get_monitors()) == 1
+    def _screenshot_monitor(self):
+        """
+        Periodically capture and analyze screenshots
+        """
+        while self.monitoring and self.is_exam_active:
+            current_time = time.time()
+            if current_time - self.last_screenshot_time >= self.screenshot_interval:
+                screenshot = pag.screenshot()
+                screenshot_filename = f"exam_screenshot_{time.strftime('%Y%m%d_%H%M%S')}.png"
+                screenshot.save(screenshot_filename)
+                
+                # Optional: Add image analysis for additional compliance checks
+                self._analyze_screenshot(screenshot_filename)
+                
+                self.log(f"Screenshot captured: {screenshot_filename}")
+                self.last_screenshot_time = current_time
+            
+            time.sleep(1)
 
-    def take_screenshot(self):
-        current_time = time.time()
-        if current_time - self.last_screenshot_time >= self.screenshot_interval:
-            screenshot = pag.screenshot()
-            screenshot_filename = f"screenshot_{time.strftime('%Y%m%d_%H%M%S')}.png"
-            screenshot.save(screenshot_filename)
-            self.log(f"SCREENSHOT_TAKEN: {screenshot_filename}")
-            self.last_screenshot_time = current_time
+    def _analyze_screenshot(self, screenshot_path):
+        """
+        Perform AI-powered screenshot analysis
+        
+        :param screenshot_path: Path to the captured screenshot
+        """
 
-    def start_monitoring(self):
-        if not self.one_display():
-            self.log("MULTIPLE_DISPLAYS_DETECTED")
-            return False
+        pass
 
-        self.monitoring = True
-        self.clipboard_thread = threading.Thread(target=self.clipboard_monitor)
-        self.clipboard_thread.start()
+    def _hotkey_monitor(self):
+        """
+        Monitor and log suspicious keyboard interactions
+        """
+        keyboard.add_hotkey('ctrl+c', lambda: self.log('CTRL + C Intercepted', 'WARN'), suppress=True)
+        keyboard.add_hotkey('ctrl+v', lambda: self.log('CTRL + V Intercepted', 'WARN'), suppress=True)
+        keyboard.add_hotkey('ctrl+n', lambda: self.log('CTRL + N Intercepted', 'WARN'), suppress=True)
 
-        # Set up hotkey logging with clipboard tracking
-        keyboard.add_hotkey('ctrl+c', lambda: self.log('CTRL + C'), suppress=True)
-        keyboard.add_hotkey('ctrl+v', lambda: self.log('CTRL + V'), suppress=True)
-        keyboard.add_hotkey('ctrl+n', lambda: self.log('CTRL + N'), suppress=True)
-
-        return True
-
-    def stop_monitoring(self):
+    def end_exam(self):
+        """
+        Terminate exam monitoring and submit final report
+        """
+        self.is_exam_active = False
         self.monitoring = False
-        if hasattr(self, 'clipboard_thread'):
-            self.clipboard_thread.join()
-        keyboard.unhook_all()
+        
+        self._submit_exam_report()
+
+    def _submit_exam_report(self):
+        """
+        Generate and submit comprehensive exam report
+        """
+        report = {
+            'student_id': self.student.id,
+            'assignment_id': self.assignment.id,
+            'compliance_issues': self.compliance_issues,
+            'log_file': self.out
+        }
+        
+        try:
+            submission = self.assignment.get_submission(self.student.id)
+            submission.edit(submission={
+                'extra_submissions': json.dumps(report)
+            })
+        except Exception as e:
+            self.log(f"Failed to submit exam report: {str(e)}", 'WARN')
 
 def main():
-    # Get screen dimensions
-    user32 = ctypes.windll.user32
-    width = user32.GetSystemMetrics(0)
-    height = user32.GetSystemMetrics(1)
-
-    # Initialize webcam
-    webcam = cv2.VideoCapture(0) 
-    webcam_width = int(webcam.get(cv2.CAP_PROP_FRAME_WIDTH))
-    webcam_height = int(webcam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    overlay_width = webcam_width // 5
-    overlay_height = webcam_height // 5
-
-    # Video writer setup
-    resolution = (width, height)
-    codec = cv2.VideoWriter.fourcc(*"mp4v")
-    filename = "exam_recording.mp4"
-    fps = 30.0
-    out = cv2.VideoWriter(filename, codec, fps, resolution)
-
-    monitor = ExamMonitor()
+    CANVAS_URL = os.environ.get('CANVAS_URL', 'https://katyisd.instructure.com')
+    API_KEY = os.environ.get('CANVAS_API_KEY')
+    COURSE_ID = 12345 
+    ASSIGNMENT_ID = 67890
     
-    try:
-        if monitor.start_monitoring():
-            print("Exam monitoring started. Press Ctrl+Alt+Q to quit.")
-            
-            while True:
-                monitor.take_screenshot()
+    proctor = CanvasProctor(CANVAS_URL, API_KEY, COURSE_ID, ASSIGNMENT_ID)
+    
+    # Workflow example
+    student = proctor.canvas.get_user(user_id)  # Fetch student from Canvas
+    if proctor.start_exam_monitoring(student):
+        # Monitoring active - could integrate with exam timer or other controls
+        pass
 
-                img = np.array(pag.screenshot())
-                frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                
-                ret, webcam_frame = webcam.read()
-                if ret:
-                    webcam_frame = cv2.resize(webcam_frame, (overlay_width, overlay_height))
-                    
-                    y_offset = 10  # pixels from top
-                    x_offset = width - overlay_width - 10  # pixels from right
-                    
-                    frame[y_offset:y_offset+overlay_height, 
-                          x_offset:x_offset+overlay_width] = webcam_frame
-                
-                out.write(frame)
-                
-                if keyboard.is_pressed('ctrl+alt+q'):
-                    break
-                
-                time.sleep(0.1)  # Prevent high CPU usage
-        
-        else:
-            print("Failed to start monitoring due to multiple displays.")
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    
-    finally:
-        # Cleanup
-        monitor.stop_monitoring()
-        webcam.release()
-        out.release()
-        cv2.destroyAllWindows()
-    
 if __name__ == "__main__":
     main()

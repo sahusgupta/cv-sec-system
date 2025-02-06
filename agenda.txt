@@ -12,3 +12,8 @@ ask tully:
 - how long to keep recordings for after exam
 - whether he wants all to be downloaded to the device or not
 - would he let me test the stuff on a sample test
+
+
+links:
+canvas.instructure.com -> dev account
+developerdocs.instructure.com -> documentation for LTI
