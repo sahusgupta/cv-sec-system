@@ -3,11 +3,6 @@
 import openai as oa
 def process_frames(frames, criteria):
     """
-    Processes a list of frame filenames by opening each file and sending the file objects to GPT4o for analysis.
-    The GPT4o model is expected to evaluate each image against specified criteria and return
-    a JSON object with a 'criteria_confidences' dictionary, where keys are criteria and values 
-    are confidence scores (from 0 to 1). The function then computes an overall probability score 
-    as the average of these confidence scores.
     
     Parameters:
         frames (list): A list of frame filenames.
