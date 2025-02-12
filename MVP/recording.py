@@ -10,14 +10,8 @@ import keyboard
 import screeninfo
 import pyperclip
 from canvasapi import Canvas
-from dotenv import load_dotenv
-
-from process import process_frames
-
-load_dotenv()
 
 class CanvasProctor:
-
     def __init__(self, canvas_url, api_key, course_id, assignment_id):
         """        
         :param canvas_url: Base URL of the Canvas LMS instance
@@ -25,17 +19,18 @@ class CanvasProctor:
         :param course_id: ID of the course containing the exam
         :param assignment_id: ID of the specific exam assignment
         """
-        self.canvas =Canvas(canvas_url, api_key, requests_kwargs={'verify': False})
+        self.canvas = Canvas(canvas_url, api_key)
         self.course = self.canvas.get_course(course_id)
         self.assignment = self.course.get_assignment(assignment_id)
-        self.last_clipboard_content = pyperclip.paste() or ""
+        
+        # Exam monitoring setup
+        self.last_clipboard_content = pyperclip.paste()
         self.monitoring = False
         self.screenshot_interval = 60 
         self.last_screenshot_time = 0
         self.out = "log.txt"
         self.compliance_issues = []
         self.is_exam_active = False
-        self.student = None
 
     def log(self, event, severity='INFO'):
         """
@@ -44,15 +39,9 @@ class CanvasProctor:
         :param event: Event description
         :param severity: Severity level (INFO, WARN, CRITICAL)
         """
-        if not event:
-            return
-
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"{timestamp} [{severity}]: {event}\n"
         
-        if not os.path.exists(os.path.dirname(self.out)):
-            os.makedirs(os.path.dirname(self.out))
-            
         with open(self.out, "a") as f:
             f.write(log_entry)
         
@@ -65,13 +54,10 @@ class CanvasProctor:
         
         :param issue_description: Detailed description of the compliance violation
         """
-        if not issue_description or not self.student:
-            return
-
         try:
+            # Example: Create a comment on the assignment submission
             submission = self.assignment.get_submission(self.student.id)
-            if submission:
-                submission.create_submission_comment(comment=f"Proctoring Violation: {issue_description}")
+            submission.create_submission_comment(comment=f"Proctoring Violation: {issue_description}")
         except Exception as e:
             self.log(f"Failed to report compliance issue: {str(e)}", 'WARN')
 
@@ -81,9 +67,6 @@ class CanvasProctor:
         
         :return: Boolean indicating if environment is compliant
         """
-        if not all([self.canvas, self.course, self.assignment]):
-            return False
-
         checks = [
             self._check_single_display(),
             self._check_allowed_applications(),
@@ -98,12 +81,7 @@ class CanvasProctor:
         
         :return: Boolean indicating single display compliance
         """
-        monitors = screeninfo.get_monitors()
-        if not monitors:
-            self.log("No displays detected", 'CRITICAL')
-            return False
-
-        is_single_display = len(monitors) == 1
+        is_single_display = len(screeninfo.get_monitors()) == 1
         if not is_single_display:
             self.log("Multiple displays detected", 'CRITICAL')
         return is_single_display
@@ -124,8 +102,6 @@ class CanvasProctor:
         
         :return: Boolean indicating successful identity verification
         """
-        if not self.student:
-            return False
         # Implement facial recognition or other identity checks
         # Potentially integrate with Canvas user profile or external ID service
         return True
@@ -136,10 +112,6 @@ class CanvasProctor:
         
         :param student: Canvas student object
         """
-        if not student:
-            self.log("No student provided", 'CRITICAL')
-            return False
-
         self.student = student
         
         if not self.validate_exam_environment():
@@ -158,10 +130,6 @@ class CanvasProctor:
             while self.monitoring and self.is_exam_active:
                 # Find all captured screenshot files matching the naming pattern
                 frames = sorted(glob.glob("exam_screenshot_*.png"))
-                if not frames:
-                    time.sleep(2)
-                    continue
-
                 # Filter for new frames that haven't been analyzed yet
                 new_frames = [f for f in frames if f not in processed_frames]
                 # Determine a random threshold between 10 and 15
@@ -171,9 +139,8 @@ class CanvasProctor:
                     frames_to_analyze = new_frames[:threshold]
                     result = process_frames(frames_to_analyze, criteria="Device present in camera, Multiple people present in frame, Inconsistent gaze position, turning head, frequently glancing down at lap")
                     
-                    if result:
-                        self.log(f"Analyzed {len(frames_to_analyze)} frames, analysis result: {result}", 'INFO')
-                        processed_frames.update(frames_to_analyze)
+                    self.log(f"Analyzed {len(frames_to_analyze)} frames, analysis result: {result}", 'INFO')
+                    processed_frames.update(frames_to_analyze)
                 time.sleep(2)
         
         # Start monitoring threads
@@ -196,7 +163,7 @@ class CanvasProctor:
         while self.monitoring and self.is_exam_active:
             try:
                 current_clipboard = pyperclip.paste()
-                if current_clipboard and current_clipboard != self.last_clipboard_content:
+                if current_clipboard != self.last_clipboard_content:
                     self.log(f"Clipboard change detected: {current_clipboard}", 'WARN')
                     self.last_clipboard_content = current_clipboard
                 time.sleep(0.5)
@@ -211,10 +178,6 @@ class CanvasProctor:
             current_time = time.time()
             if current_time - self.last_screenshot_time >= self.screenshot_interval:
                 screenshot = pag.screenshot()
-                if not screenshot:
-                    self.log("Failed to capture screenshot", 'WARN')
-                    continue
-
                 screenshot_filename = f"exam_screenshot_{time.strftime('%Y%m%d_%H%M%S')}.png"
                 screenshot.save(screenshot_filename)
                 
@@ -232,18 +195,13 @@ class CanvasProctor:
         
         :param screenshot_path: Path to the captured screenshot
         """
-        if not screenshot_path or not os.path.exists(screenshot_path):
-            return
+
         pass
 
     def _hotkey_monitor(self):
         """
         Monitor and log suspicious keyboard interactions
         """
-        if not keyboard:
-            self.log("Keyboard monitoring unavailable", 'WARN')
-            return
-
         keyboard.add_hotkey('ctrl+c', lambda: self.log('CTRL + C Intercepted', 'WARN'), suppress=True)
         keyboard.add_hotkey('ctrl+v', lambda: self.log('CTRL + V Intercepted', 'WARN'), suppress=True)
         keyboard.add_hotkey('ctrl+n', lambda: self.log('CTRL + N Intercepted', 'WARN'), suppress=True)
@@ -252,9 +210,6 @@ class CanvasProctor:
         """
         Terminate exam monitoring and submit final report
         """
-        if not self.is_exam_active:
-            return
-
         self.is_exam_active = False
         self.monitoring = False
         
@@ -264,10 +219,6 @@ class CanvasProctor:
         """
         Generate and submit comprehensive exam report
         """
-        if not self.student:
-            self.log("No student associated with exam", 'WARN')
-            return
-
         report = {
             'student_id': self.student.id,
             'assignment_id': self.assignment.id,
@@ -277,72 +228,24 @@ class CanvasProctor:
         
         try:
             submission = self.assignment.get_submission(self.student.id)
-            if submission:
-                submission.edit(submission={
-                    'extra_submissions': json.dumps(report)
-                })
+            submission.edit(submission={
+                'extra_submissions': json.dumps(report)
+            })
         except Exception as e:
             self.log(f"Failed to submit exam report: {str(e)}", 'WARN')
 
 def main():
-    CANVAS_URL = os.getenv('CANVAS_URL', 'https://katyisd.instructure.com')
-    API_KEY = os.getenv('CANVAS_API_KEY')
+    CANVAS_URL = os.environ.get('CANVAS_URL', 'https://katyisd.instructure.com')
+    API_KEY = '6936~ta67BQcPu8JuMa3MRnRnYTPJX6HW4E3A2DWNrf3XaztNtLQUEYmtxRktZ9QmK23D'
     COURSE_ID = 12345 
     ASSIGNMENT_ID = 67890
     
-    if not all([CANVAS_URL, API_KEY, COURSE_ID, ASSIGNMENT_ID]):
-        print("Missing required environment variables")
-        return
-
     proctor = CanvasProctor(CANVAS_URL, API_KEY, COURSE_ID, ASSIGNMENT_ID)
-    # Set up recording parameters
-    fps = 30
-    batch_size = 10
-    frame_interval = 1.0 / fps
-    frames_buffer = []
-    last_process_time = time.time()
-
-    # Criteria for frame analysis
-    analysis_criteria = [
-        "phone visible in frame",
-        "multiple people visible",
-        "looking away from screen",
-        "suspicious objects on desk"
-    ]
-
-    try:
-        while True:
-            current_time = time.time()
-            
-            if current_time - last_process_time >= frame_interval:
-                frame_path = f"frame_{len(frames_buffer)}.jpg"
-                screenshot = pag.screenshot()
-                if screenshot:
-                    screenshot.save(frame_path)
-                    frames_buffer.append(frame_path)
-                    last_process_time = current_time
-
-
-            if len(frames_buffer) >= batch_size:
-                results = process_frames(frames_buffer, analysis_criteria)
-                
-                if results:
-                    if results["overall_probability"] > 0.7:
-                        proctor.log(f"Suspicious activity detected: {results}", "WARN")
-                
-                for frame_path in frames_buffer:
-                    if os.path.exists(frame_path):
-                        os.remove(frame_path)
-                frames_buffer = []
-
-            time.sleep(0.01)  
-
-    except KeyboardInterrupt:
-        for frame_path in frames_buffer:
-            if os.path.exists(frame_path):
-                os.remove(frame_path)
-    student = proctor.canvas.get_user("")  # Fetch student from Canvas
-    if student and proctor.start_exam_monitoring(student):
+    
+    # Workflow example
+    student = proctor.canvas.get_user("k1412229")  # Fetch student from Canvas
+    if proctor.start_exam_monitoring(student):
+        # Monitoring active - could integrate with exam timer or other controls
         pass
 
 if __name__ == "__main__":
