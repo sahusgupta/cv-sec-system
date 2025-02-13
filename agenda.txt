@@ -1,7 +1,7 @@
-- log when app loses focus
-- AI processing frames for phones, other criteria
-- track clipboard content
-- better timelining
+- log when app loses focus - DONE
+- AI processing frames for phones, other criteria - DONE
+- track clipboard content - DONE
+- better timelining - DONE
 
 Later:
 - restrict to only one monitor at all times (DONE) and limit one tab

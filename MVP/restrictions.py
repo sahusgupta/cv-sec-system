@@ -41,7 +41,7 @@ class ExamMonitor:
             time.sleep(1)
 
     def one_display(self):
-        return len(screeninfo.get_monitors()) == 1
+        return len(screeninfo.get_monitors()) == 2
 
     def start_monitoring(self):
         if not self.one_display():
