@@ -8,9 +8,15 @@ __pycache__/
 # Dependency directories
 node_modules/
 
+**/.png
+**/.jpg
+**/.jpeg
+**/.mov
+**/.mp4
+
+
 # Distribution directory
 dist/
-
 # Logs
 *.log
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
