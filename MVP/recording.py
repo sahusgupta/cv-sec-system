@@ -124,7 +124,7 @@ def main():
 
                 current_time = time.time()
                 if current_time - last_process_time >= 1.0 and frame_buffer:
-                    criteria = ["looking away from screen", "multiple people present", "phone visible", "suspicious objects", 'constant looking down', 'mouth moving', 'wearing headphones']
+                    criteria = ["looking away from screen", "multiple people present", "phone visible", "suspicious objects"]
                     result = process_frames(frame_buffer, criteria)
                     
                     

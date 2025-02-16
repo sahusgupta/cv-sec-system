@@ -1,26 +1,4 @@
-2025-02-13 16:02:59: === New Session Started ===
-2025-02-13 16:02:59: SCREENSHOT_TAKEN: screenshot_20250213_160259.png
-2025-02-13 16:03:21: CTRL + C
-2025-02-13 16:03:21: CTRL + C
-2025-02-13 16:03:21: CTRL + C
-2025-02-13 16:03:21: CTRL + C
-2025-02-13 16:03:21: CTRL + C
-2025-02-13 16:03:22: CTRL + C
-2025-02-13 16:03:23: CTRL + V
-2025-02-13 16:03:23: CTRL + V
-2025-02-13 16:03:23: CTRL + V
-2025-02-13 16:03:23: CTRL + V
-2025-02-13 16:03:23: CTRL + V
-2025-02-13 16:03:24: CTRL + V
-2025-02-13 16:03:24: CTRL + V
-2025-02-13 16:03:24: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0, 'constant looking down': 0.0, 'mouth moving': 0.0, 'wearing headphones': 0.0}
-2025-02-13 16:03:24: CTRL + V
-2025-02-13 16:03:27: CTRL + N
-2025-02-13 16:03:28: CTRL + N
-2025-02-13 16:03:28: CTRL + N
-2025-02-13 16:03:28: CTRL + N
-2025-02-13 16:03:44: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0, 'constant looking down': 0.0, 'mouth moving': 0.0, 'wearing headphones': 0.0}
-2025-02-13 16:04:01: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0, 'constant looking down': 0.0, 'mouth moving': 0.0, 'wearing headphones': 0.0}
-2025-02-13 16:04:01: SCREENSHOT_TAKEN: screenshot_20250213_160401.png
-2025-02-13 16:04:19: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0, 'constant looking down': 0.0, 'mouth moving': 0.0, 'wearing headphones': 0.0}
-2025-02-13 16:04:37: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0, 'constant looking down': 0.0, 'mouth moving': 0.0, 'wearing headphones': 0.0}
+2025-02-12 19:33:41: === New Session Started ===
+2025-02-12 19:33:41: SCREENSHOT_TAKEN: screenshot_20250212_193341.png
+2025-02-12 19:33:56: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0}
+2025-02-12 19:34:12: BEHAVIOR_ANALYZED: Score=0.0, Details={'looking away from screen': 0.0, 'multiple people present': 0.0, 'phone visible': 0.0, 'suspicious objects': 0.0}

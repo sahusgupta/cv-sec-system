@@ -1,9 +1,8 @@
+
 import base64
 import json
 import os
 from openai import OpenAI
-import requests
-from typing import List
 
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
@@ -96,5 +95,4 @@ def process_frames(frames, criteria):
         "criteria_confidences": averaged_confidences,
         "overall_probability": overall_probability
     }
-
 
