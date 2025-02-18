@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LTI Tool Launch</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, {{ user_name }}!</h1>
+        <p>Course: {{ course_name }}</p>
+        <p>Email: {{ user_email }}</p>
+        
+        {% if is_instructor %}
+        <div class="teacher-section">
+            <h2>Teacher Controls</h2>
+            <div class="controls">
+                <button onclick="location.href='{{ url_for(\'get_students\') }}';">View Students</button>
+                <!-- Add more teacher controls as needed -->
+            </div>
+        </div>
+        {% else %}
+        <div class="student-section">
+            <h2>Student View</h2>
+            <!-- Add student-specific content -->
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

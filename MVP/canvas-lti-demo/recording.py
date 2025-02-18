@@ -32,6 +32,8 @@ def get_course_students(course_id: str) -> List[str]:
     except requests.exceptions.RequestException as e:
         print(f"Error fetching students: {str(e)}")
         return []
+
+
 # Example usage:
 if __name__ == "__main__":
     course_id = "1903726"  

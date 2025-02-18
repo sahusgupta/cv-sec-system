@@ -1,0 +1,1 @@
+{"https://k12.instructure.com": {"client_id": "10000000000000", "auth_login_url": "https://k12.instructure.com/api/lti/authorize_redirect", "auth_token_url": "https://k12.instructure.com/login/oauth2/token", "key_set_url": "https://k12.instructure.com/api/lti/security/jwks", "private_key_file": "private.key", "deployment_ids": ["1:your_deployment_id"]}}
