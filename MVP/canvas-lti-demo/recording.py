@@ -4,9 +4,7 @@ import requests
 
 
 def get_course_students(course_id: str) -> List[str]:
-    """
-    Fetch list of students from a Canvas course using the Canvas API
-    """
+
     CANVAS_API_URL = "https://k12.instructure.com"
     CANVAS_TOKEN = "6936~MyKKNTRw4YVhUR6Fv9Ze4FwEhNNAMD3Gk28ET64kFCADm278hZKtwtJcxAGPcCkh"  
     
@@ -34,8 +32,30 @@ def get_course_students(course_id: str) -> List[str]:
         return []
 
 
+def get_quiz_progress():
+    API_BASE_URL = "https://k12.instructure.com/api/v1"
+    ACCESS_TOKEN = "6936~MyKKNTRw4YVhUR6Fv9Ze4FwEhNNAMD3Gk28ET64kFCADm278hZKtwtJcxAGPcCkh"
+    COURSE_ID = 1903726
+    QUIZ_ID = 3146054 
+    STUDENT_ID = 11367013
+
+    # Request the quiz submission for the specific student
+    headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
+    url = f"{API_BASE_URL}/courses/{COURSE_ID}/quizzes/{QUIZ_ID}/submissions?user_id={STUDENT_ID}"
+
+    response = requests.get(url, headers=headers)
+    data = response.json()
+
+    # Parse the response
+    if "quiz_submissions" in data and len(data["quiz_submissions"]) > 0:
+        submission = data["quiz_submissions"][0]
+        print(f"Student {STUDENT_ID} Quiz Status: {submission['workflow_state']}")
+    else:
+        print("No quiz submission found for this student.")
+
 # Example usage:
 if __name__ == "__main__":
     course_id = "1903726"  
     students = get_course_students(course_id)
     print("Students in course:", students)
+    get_quiz_progress()

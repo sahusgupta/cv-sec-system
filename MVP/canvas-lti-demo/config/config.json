@@ -1,0 +1,13 @@
+{
+    "'title": "View Sys Reports",
+    "description": "View student exam analytics for possible cheating",
+    "url": "https://sysproctoring.com/results",
+    "placements": [
+        {
+            "placement": "quiz_submission_review",
+            "message_type": "LtiResourceLinkRequest",
+            "target_link_uri": "https://sysproctoring.com/results?quiz_id=$Canvas.assignment.id",
+            "visibility": "admins"
+        }
+    ]
+}
