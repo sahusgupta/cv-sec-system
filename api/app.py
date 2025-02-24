@@ -141,6 +141,64 @@ def exam(exam_id):
     client.close()
     return jsonify(mod)
 
+@app.route('/api/exams/<int:exam_id>/start', methods=['POST'])
+def start_exam(exam_id):
+    data = {
 
+    }
+    client = pg.connect("")
+    cur = client.cursor()
+    cur.execute("SELECT * FROM exams WHERE id = %s", (exam_id))
+    response = cur.fetchone()
+    if response:
+        data = {col: response[i] for i, col in zip([n for n in range(len(response))], cur.description)}
+        if response[5] == "started":
+            data['status'] = "in_progress"
+        else:
+            cur.execute("UPDATE exams SET status = 'started' WHERE id = %s", (exam_id))
+            client.commit()
+            cur.close()
+            client.close()
+        
+        return jsonify(data), 200
+    else:
+        return jsonify({"message": "Exam not found"}), 404
+    
+@app.route('/api/exams/<int:exam_id>/submit', methods=['POST'])
+def submit_exam(exam_id):
+    client = pg.connect("")
+    cur = client.cursor()
+    
+    # Check if exam exists and is started
+    cur.execute("SELECT * FROM exams WHERE id = %s", (exam_id,))
+    exam = cur.fetchone()
+    if not exam:
+        cur.close()
+        client.close()
+        return jsonify({"message": "Exam not found"}), 404
+        
+    if exam[5] != "started":
+        cur.close() 
+        client.close()
+        return jsonify({"message": "Exam not started"}), 400
+
+    # Create session record
+    cur.execute("""
+        INSERT INTO sessions (exam_id, status, end_time) 
+        VALUES (%s, 'completed', NOW()) 
+        RETURNING id, exam_id, status, end_time
+    """, (exam_id,))
+    client.commit()
+    
+    session = cur.fetchone()
+    cur.close()
+    client.close()
+    
+    return jsonify({
+        "sessionId": session[0],
+        "examId": session[1], 
+        "status": session[2],
+        "endTime": session[3].strftime("%Y-%m-%d %H:%M:%S")
+    })
 if __name__ == '__main__':
     app.run(debug=True)
