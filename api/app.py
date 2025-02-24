@@ -3,6 +3,7 @@ from flask import *
 import jwt
 from requests import session
 import psycopg2 as pg
+from google.cloud import storage as gcs
 app = Flask(__name__)
 app.config["JWT_SECRET"] = "5y5Pr0c10r1ng"
 app.config["CONSUMER_SECRET"] = "5y5Pr0c10r1ng"
@@ -200,5 +201,122 @@ def submit_exam(exam_id):
         "status": session[2],
         "endTime": session[3].strftime("%Y-%m-%d %H:%M:%S")
     })
+    
+@app.route('/api/proctoring/sessions/<int:session_id>/record', methods=['POST'])
+def record_session_data(session_id):
+    client = pg.connect("")
+    cur = client.cursor()
+    
+    data = request.get_json()
+    
+    # Validate required fields
+    if not all(key in data for key in ['timestamp', 'focusStatus']):
+        return jsonify({"message": "Missing required fields"}), 400
+        
+    # Insert session recording data
+    cur.execute("""
+        INSERT INTO session_recordings (session_id, timestamp, focus_status, additional_info)
+        VALUES (%s, %s, %s, %s)
+    """, (session_id, data['timestamp'], data['focusStatus'], 
+          json.dumps(data.get('additionalInfo', {}))))
+    
+    client.commit()
+    cur.close()
+    client.close()
+    
+    return jsonify({"message": "Recording data saved successfully"})
+
+@app.route('/api/proctoring/sessions/<int:session_id>/events', methods=['POST']) 
+def record_session_event(session_id):
+    client = pg.connect("")
+    cur = client.cursor()
+    
+    data = request.get_json()
+    
+    # Validate required fields
+    if not all(key in data for key in ['eventType', 'timestamp', 'confidence']):
+        return jsonify({"message": "Missing required fields"}), 400
+        
+    # Insert event
+    cur.execute("""
+        INSERT INTO session_events (session_id, event_type, timestamp, confidence)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id
+    """, (session_id, data['eventType'], data['timestamp'], data['confidence']))
+    
+    event_id = cur.fetchone()[0]
+    client.commit()
+    cur.close()
+    client.close()
+    
+    return jsonify({
+        "eventId": event_id,
+        "sessionId": session_id,
+        "eventType": data['eventType'],
+        "timestamp": data['timestamp'],
+        "confidence": data['confidence']
+    })
+
+@app.route('/api/proctoring/sessions/<int:session_id>', methods=['GET'])
+def get_session_details(session_id):
+    client = pg.connect("")
+    cur = client.cursor()
+    
+    # Get session details
+    cur.execute("""
+        SELECT s.id, s.exam_id, s.student_id, s.status, 
+               s.start_time, s.end_time
+        FROM sessions s
+        WHERE s.id = %s
+    """, (session_id,))
+    
+    session = cur.fetchone()
+    if not session:
+        cur.close()
+        client.close()
+        return jsonify({"message": "Session not found"}), 404
+        
+    # Get session events
+    cur.execute("""
+        SELECT id, event_type, timestamp, confidence
+        FROM session_events
+        WHERE session_id = %s
+        ORDER BY timestamp
+    """, (session_id,))
+    events = cur.fetchall()
+    
+    # Get media files
+    cur.execute("""
+        SELECT file_id 
+        FROM session_media_files
+        WHERE session_id = %s
+    """, (session_id,))
+    media_files = [row[0] for row in cur.fetchall()]
+    
+    cur.close()
+    client.close()
+    
+    return jsonify({
+        "sessionId": session[0],
+        "examId": session[1],
+        "studentId": session[2],
+        "status": session[3],
+        "startTime": session[4].strftime("%Y-%m-%d %H:%M:%S") if session[4] else None,
+        "endTime": session[5].strftime("%Y-%m-%d %H:%M:%S") if session[5] else None,
+        "events": [{
+            "eventId": event[0],
+            "eventType": event[1],
+            "timestamp": event[2].strftime("%Y-%m-%d %H:%M:%S"),
+            "confidence": event[3]
+        } for event in events],
+        "mediaFiles": media_files
+    })
+@app.route('/api/media', methods=['POST'])
+def upload_media():
+    client = pg.connect("")
+    cur = client.cursor()
+        
+    # Get media file from request
+    
 if __name__ == '__main__':
     app.run(debug=True)
