@@ -3,10 +3,11 @@
 - track clipboard content - DONE
 - better timelining - DONE
 
-Later:
-- restrict to only one monitor at all times (DONE) and limit one tab
-- show when exam loses focus
-- timeline of events
+3/3 - 3/7:
+- fix authentication error with canvas (all week)
+- chrome extension pinging when called by api (3/4)
+- fix sign up flow - (3/4)
+- databasing (3/3)
 
 ask tully:
 - how long to keep recordings for after exam
