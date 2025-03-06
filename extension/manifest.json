@@ -1,0 +1,22 @@
+{
+  "name": "Canvas Exam Monitor",
+  "version": "1.0",
+  "manifest_version": 3,
+  "description": "Detects when a Canvas exam starts and notifies an API.",
+  "permissions": ["tabs", "activeTab", "scripting"],
+  "host_permissions": ["*://*.instructure.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.instructure.com/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  }
+}
