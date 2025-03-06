@@ -1,6 +1,11 @@
 // Check if monitoring is enabled before running the exam detection logic
 if (localStorage.getItem('examMonitoring') === 'true') {
-    detectExamStart();
+    // Wait for the document to be fully loaded before detecting exam
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', detectExamStart);
+    } else {
+        detectExamStart();
+    }
 }
 
 function detectExamStart() {
@@ -21,32 +26,35 @@ function notifyExamStarted() {
         return;
     }
 
-    fetch('https://www.sysproctoring.com/api/exams/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    // Check if extension is properly connected before sending message
+    if (!chrome.runtime.id) {
+        console.error("Extension context invalidated. Cannot communicate with background script.");
+        return;
+    }
+
+    // Use chrome.runtime.sendMessage to communicate with the background script
+    // to avoid CORS issues with direct fetch from content script
+    chrome.runtime.sendMessage({
+        action: 'startExam',
+        data: {
             examId: examId,
             userId: userId,
-            timestamp: Date.now(),
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Failed to start exam session: ${response.statusText}`);
+            timestamp: Date.now()
         }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Exam session started:', data);
-        // You can add any additional functionality here (e.g., showing an alert or notifying the user)
-    })
-    .catch(err => {
-        console.error('Error starting exam session:', err);
+    }, response => {
+        console.log(response)
+        if (response && response.success) {
+            console.log('Exam session started:', response.data);
+            // You can add any additional functionality here (e.g., showing an alert or notifying the user)
+        } else {
+            console.error('Error starting exam session:', response ? response.error : 'No response');
+        }
     });
 }
 
 function parseExamIdFromUrl(url) {
     const parts = url.split('/');
+    const quizIndex = parts.indexOf("quizzes");
     if (quizIndex !== -1 && parts[quizIndex + 1]) {
         return parts[quizIndex + 1]; // Return the exam ID (after "quizzes")
     }
@@ -55,7 +63,23 @@ function parseExamIdFromUrl(url) {
 
 // Dummy function to simulate user ID extraction (replace with actual logic as needed)
 function getUserId() {
-    // This is just a placeholder. Ideally, you would extract the user ID dynamically from the page
-    // For example, from a global JavaScript variable or from the logged-in user info in localStorage.
-    return localStorage.getItem('userId') || "defaultUserId";
+    // Try to get user ID from Canvas environment variables
+    if (window.ENV && window.ENV.current_user_id) {
+        return window.ENV.current_user_id;
+    }
+    
+    // Fallback to localStorage if available
+    const storedId = localStorage.getItem('userId');
+    if (storedId) {
+        return storedId;
+    }
+    
+    // Try to extract from page content if available
+    const userElement = document.querySelector('meta[name="user_id"]');
+    if (userElement && userElement.content) {
+        return userElement.content;
+    }
+    
+    // Last resort fallback
+    return "unknown_user";
 }

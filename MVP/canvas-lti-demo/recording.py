@@ -46,6 +46,9 @@ def get_quiz_progress():
     response = requests.get(url, headers=headers)
     data = response.json()
 
+
+    a = requests.get(f"https://k12.instructure.com/api/v1/courses/{COURSE_ID}/external_tools", headers=headers)
+    print(str(a.json()) + "/ hi my name jeff")
     # Parse the response
     if "quiz_submissions" in data and len(data["quiz_submissions"]) > 0:
         submission = data["quiz_submissions"][0]
