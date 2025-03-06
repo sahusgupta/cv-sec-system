@@ -5,8 +5,6 @@ if (localStorage.getItem('examMonitoring') === 'true') {
 
 function detectExamStart() {
     const currentUrl = window.location.href;
-    
-    // Check if the current URL matches the expected pattern for starting an exam
     if (currentUrl.includes('/quizzes/') && currentUrl.includes('/take')) {
         notifyExamStarted();
     }
@@ -14,50 +12,24 @@ function detectExamStart() {
 
 function notifyExamStarted() {
     const examId = parseExamIdFromUrl(window.location.href);
-    const userId = getUserId(); // Extract user ID dynamically from the page or session
+    const userId = "placeholderUser"; // Replace with logic to extract user ID if possible
 
-    if (!examId || !userId) {
-        console.error("Missing examId or userId. Cannot start exam session.");
-        return;
-    }
-
-    fetch('https://www.sysproctoring.com/api/exams/start', {
+    fetch('http://localhost:3000/api/exams/start', {  // Make request to your own backend
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             examId: examId,
             userId: userId,
-            timestamp: Date.now() // Send the current timestamp for the session start
+            timestamp: Date.now(),
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Failed to start exam session: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Exam session started:', data);
-        // You can add any additional functionality here (e.g., showing an alert or notifying the user)
-    })
-    .catch(err => {
-        console.error('Error starting exam session:', err);
-    });
+    .then(response => response.json())
+    .then(data => console.log('Exam session started:', data))
+    .catch(err => console.error('Error:', err));
 }
 
 function parseExamIdFromUrl(url) {
     const parts = url.split('/');
     const quizIndex = parts.indexOf('quizzes');
-    
-    if (quizIndex !== -1 && parts[quizIndex + 1]) {
-        return parts[quizIndex + 1]; // Return the exam ID (after "quizzes")
-    }
-    return null; // If no exam ID is found, return null
-}
-
-// Dummy function to simulate user ID extraction (replace with actual logic as needed)
-function getUserId() {
-    // This is just a placeholder. Ideally, you would extract the user ID dynamically from the page
-    // For example, from a global JavaScript variable or from the logged-in user info in localStorage.
-    return localStorage.getItem('userId') || "defaultUserId";
+    return quizIndex !== -1 && parts[quizIndex + 1] ? parts[quizIndex + 1] : null;
 }
