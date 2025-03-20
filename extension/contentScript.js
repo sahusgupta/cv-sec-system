@@ -6,14 +6,43 @@ if (localStorage.getItem('examMonitoring') === 'true') {
     } else {
         detectExamStart();
     }
+    
+    // Listen for messages from the background script
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.action === 'examStartResult') {
+            if (message.success) {
+                if (message.isDefault) {
+                    console.log('Default exam session started due to timeout:', message.data);
+                    // You might want to handle default responses differently
+                } else {
+                    console.log('Exam session started successfully:', message.data);
+                }
+                // You can add any additional functionality here (e.g., showing an alert or notifying the user)
+            } else {
+                console.error('Error starting exam session:', message.error);
+            }
+        }
+    });
 }
 
 function detectExamStart() {
     const currentUrl = window.location.href;
     
+    // Check for the specific URL you want to target
+    const targetUrl = "https://k12.instructure.com/courses/1903726/quizzes/3146054/take";
+    
     // Check if the current URL matches the expected pattern for starting an exam
     if (currentUrl.includes('/quizzes/') && currentUrl.includes('/take')) {
-        notifyExamStarted();
+        console.log("Exam page detected");
+        
+        // If it's the specific quiz we're targeting, ensure we send the notification
+        if (currentUrl.startsWith(targetUrl)) {
+            console.log("Target exam detected, notifying background script");
+            notifyExamStarted();
+        } else {
+            console.log("General exam detected, notifying background script");
+            notifyExamStarted();
+        }
     }
 }
 
@@ -32,6 +61,8 @@ function notifyExamStarted() {
         return;
     }
 
+    console.log(`Starting exam notification with examId: ${examId} and userId: ${userId}`);
+
     // Use chrome.runtime.sendMessage to communicate with the background script
     // to avoid CORS issues with direct fetch from content script
     chrome.runtime.sendMessage({
@@ -42,12 +73,13 @@ function notifyExamStarted() {
             timestamp: Date.now()
         }
     }, response => {
-        console.log(response)
-        if (response && response.success) {
-            console.log('Exam session started:', response.data);
-            // You can add any additional functionality here (e.g., showing an alert or notifying the user)
+        // This will be called immediately with the acknowledgment
+        // The actual result will come later via chrome.runtime.onMessage
+        if (response) {
+            console.log('Initial response from background script:', response);
         } else {
-            console.error('Error starting exam session:', response ? response.error : 'No response');
+            console.warn('No initial response from background script, but continuing...');
+            // We'll still get a response via the message listener
         }
     });
 }

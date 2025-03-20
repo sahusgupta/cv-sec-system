@@ -10,11 +10,9 @@
   ],
   "host_permissions": [
     "*://*.instructure.com/*",
+    "*://*.k12.instructure.com/*",
     "https://sysproctoring.com/*",
-    "https://www.sysproctoring.com/",
-    "https://www.sysproctoring.com/api/*",
-    "https://sysproctoring.com/",
-    "https://sysproctoring.com/api/*"
+    "https://*.sysproctoring.com/*"
   ],
 
   "background": {
@@ -22,7 +20,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.instructure.com/*"],
+      "matches": [
+        "*://*.instructure.com/*",
+        "*://*.k12.instructure.com/*"
+      ],
       "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
