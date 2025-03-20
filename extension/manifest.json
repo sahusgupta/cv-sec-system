@@ -3,10 +3,18 @@
   "version": "1.0",
   "manifest_version": 3,
   "description": "Detects when a Canvas exam starts and notifies an API.",
-  "permissions": ["tabs", "activeTab", "scripting", "storage"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting"
+  ],
   "host_permissions": [
     "*://*.instructure.com/*",
-    "https://sysproctoring.com/*"
+    "https://sysproctoring.com/*",
+    "https://www.sysproctoring.com/",
+    "https://www.sysproctoring.com/api/*",
+    "https://sysproctoring.com/",
+    "https://sysproctoring.com/api/*"
   ],
 
   "background": {
