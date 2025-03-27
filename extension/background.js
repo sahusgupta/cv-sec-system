@@ -1,221 +1,351 @@
-// Listen for messages from the content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'startExam') {
-    // Immediately acknowledge receipt of the message
-    // This keeps the message channel open
-    sendResponse({ received: true, processing: true });
-    
-    // Set a timeout to send a default response if the API calls take too long
-    const timeoutId = setTimeout(() => {
-      if (sender.tab && sender.tab.id) {
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'examStartResult',
-          success: true,
-          data: {
-            sessionId: `default-session-${Date.now()}`,
-            status: "pending",
-            message: "Default response due to timeout"
-          },
-          isDefault: true
-        });
-        
-        // Store default session information in local storage
-        chrome.storage.local.set({
-          currentExamSession: {
-            examId: message.data.examId,
-            startTime: message.data.timestamp,
-            sessionId: `default-session-${Date.now()}`,
-            isDefault: true
-          }
-        });
-        
-        console.log("Sent default response due to timeout");
-      }
-    }, 5000); // 5 seconds timeout
-    
-    // Then handle the exam start in a separate function
-    handleExamStart(message.data)
-      .then(result => {
-        // Cancel the timeout since we got a real response
-        clearTimeout(timeoutId);
-        
-        // We'll use a different method to send the result back
-        // since the original sendResponse channel may be closed
-        if (sender.tab && sender.tab.id) {
-          chrome.tabs.sendMessage(sender.tab.id, {
-            action: 'examStartResult',
-            success: true,
-            data: result
-          });
+(async function() {
+    // First, define the SessionLogger class
+    class SessionLogger {
+        constructor() {
+            // Remove the trailing /api since it's already in the routes
+            this.API_ENDPOINT = 'http://127.0.0.1:5000';
+            this.currentSession = null;
         }
-      })
-      .catch(error => {
-        // Cancel the timeout since we got a real (error) response
-        clearTimeout(timeoutId);
+
+        async startSession(examData) {
+            try {
+                const response = await fetch(`${this.API_ENDPOINT}/api/sessions/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        student_id: examData.userId,
+                        exam_id: examData.examId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                this.currentSession = data.session_id;
+                
+                // Store session info in chrome storage
+                chrome.storage.local.set({
+                    currentExamSession: {
+                        sessionId: data.session_id,
+                        examId: examData.examId,
+                        startTime: new Date().toISOString(),
+                        status: 'active'
+                    }
+                });
+                
+                return data;
+            } catch (error) {
+                console.error("Error starting session:", error);
+                throw error;
+            }
+        }
+
+        async checkExistingSession(examId, studentId) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', `${this.API_ENDPOINT}/api/exams/${examId}/sessions?student_id=${studentId}`, true);
+                
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            resolve(data.activeSession);
+                        } catch (e) {
+                            resolve(null);
+                        }
+                    } else {
+                        resolve(null);
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    resolve(null);
+                };
+                
+                xhr.send();
+            });
+        }
+
+        async logEvent(eventType, eventData) {
+            if (!this.currentSession) {
+                console.warn("No active session to log events");
+                return;
+            }
+            
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${this.API_ENDPOINT}/api/sessions/${this.currentSession}/events`, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            resolve(data);
+                        } catch (e) {
+                            resolve({status: 'success'});
+                        }
+                    } else {
+                        reject(new Error(`HTTP error! status: ${xhr.status}`));
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    reject(new Error('Network request failed'));
+                };
+                
+                const payload = JSON.stringify({
+                    eventType: eventType,
+                    additionalInfo: eventData,
+                    timestamp: new Date().toISOString()
+                });
+                
+                xhr.send(payload);
+            });
+        }
+
+        async endSession() {
+            if (!this.currentSession) {
+                console.warn("No active session to end");
+                return;
+            }
+            
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${this.API_ENDPOINT}/api/sessions/${this.currentSession}/end`, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        // Clear session from chrome storage
+                        chrome.storage.local.remove('currentExamSession');
+                        this.currentSession = null;
+                        
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            resolve(data);
+                        } catch (e) {
+                            resolve({status: 'success'});
+                        }
+                    } else {
+                        reject(new Error(`HTTP error! status: ${xhr.status}`));
+                    }
+                }.bind(this);
+                
+                xhr.onerror = function() {
+                    reject(new Error('Network request failed'));
+                };
+                
+                xhr.send();
+            });
+        }
         
-        console.error('Error in handleExamStart:', error);
-        if (sender.tab && sender.tab.id) {
-          chrome.tabs.sendMessage(sender.tab.id, {
-            action: 'examStartResult',
-            success: false,
-            error: error.message
-          });
+        // Add the missing restoreSession method
+        async restoreSession(sessionData) {
+            if (sessionData && sessionData.sessionId) {
+                this.currentSession = sessionData.sessionId;
+                console.log(`Session restored: ${this.currentSession}`);
+                return true;
+            }
+            return false;
         }
-      });
-    
-    // Return false since we've already responded
-    return false;
-  }
-});
-
-/**
- * Handles the exam start event by sending data to the server
- * @param {Object} examData - Data about the exam session
- * @returns {Promise<Object>} - Promise that resolves with the API response data
- */
-async function handleExamStart(examData) {
-  console.log("Handling exam start", examData);
-  
-  // Prepare the data to be sent to the server
-  const payload = {
-    examId: examData.examId,
-    userId: examData.userId,
-    timestamp: examData.timestamp,
-    browserInfo: {
-      userAgent: navigator.userAgent,
-      language: navigator.language
     }
-  };
 
-  console.log("Sending payload to API:", payload);
+    // Create singleton instance
+    const sessionLogger = new SessionLogger();
 
-  // First attempt: Direct fetch with JSON
-  try {
-    const response = await fetch('https://sysproctoring.com/api/exams/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    console.log("API response status:", response.status);
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log("API response data:", data);
-      
-      // Store session information in local storage
-      chrome.storage.local.set({
-        currentExamSession: {
-          examId: examData.examId,
-          startTime: examData.timestamp,
-          sessionId: data.sessionId || null
-        }
-      });
-      
-      return data;
-    }
-  } catch (directFetchError) {
-    console.error("Direct fetch failed:", directFetchError);
-    // Continue to second attempt
-  }
-
-  // Second attempt: Form-encoded data
-  try {
-    console.log("Trying form-encoded approach");
-    
-    const formData = new URLSearchParams();
-    for (const [key, value] of Object.entries(flattenObject(payload))) {
-      formData.append(key, value);
-    }
-    
-    const response = await fetch('https://sysproctoring.com/api/exams/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData.toString()
-    });
-
-    console.log("Form-encoded API response status:", response.status);
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log("Form-encoded API response data:", data);
-      
-      // Store session information in local storage
-      chrome.storage.local.set({
-        currentExamSession: {
-          examId: examData.examId,
-          startTime: examData.timestamp,
-          sessionId: data.sessionId || null
-        }
-      });
-      
-      return data;
-    }
-  } catch (formFetchError) {
-    console.error("Form-encoded fetch failed:", formFetchError);
-    // Continue to final attempt
-  }
-
-  // Final attempt: No-cors mode as a last resort
-  console.log("Trying no-cors mode as final attempt");
-  
-  try {
-    await fetch('https://sysproctoring.com/api/exams/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload),
-      mode: 'no-cors'
-    });
-    
-    // Since we don't get a response with no-cors mode, create a dummy one
-    const dummyResponse = {
-      sessionId: `session-${Date.now()}`,
-      status: "pending",
-      message: "Request sent in no-cors mode, actual status unknown"
+    // Store monitoring listener references for cleanup
+    let monitoringListeners = {
+        tabActivated: null,
+        windowFocus: null,
+        tabUpdated: null,
+        idleState: null
     };
-    
-    // Store session information in local storage
-    chrome.storage.local.set({
-      currentExamSession: {
-        examId: examData.examId,
-        startTime: examData.timestamp,
-        sessionId: dummyResponse.sessionId,
-        isFailover: true
-      }
-    });
-    
-    return dummyResponse;
-  } catch (noCorsError) {
-    console.error("No-cors fetch also failed:", noCorsError);
-    throw new Error("All API request methods failed");
-  }
-}
 
-// Helper function to flatten nested objects for URL encoding
-function flattenObject(obj, prefix = '') {
-  return Object.keys(obj).reduce((acc, k) => {
-    const pre = prefix.length ? `${prefix}[${k}]` : k;
-    
-    if (typeof obj[k] === 'object' && obj[k] !== null && !Array.isArray(obj[k])) {
-      Object.assign(acc, flattenObject(obj[k], pre));
-    } else if (Array.isArray(obj[k])) {
-      obj[k].forEach((item, index) => {
-        if (typeof item === 'object' && item !== null) {
-          Object.assign(acc, flattenObject(item, `${pre}[${index}]`));
-        } else {
-          acc[`${pre}[${index}]`] = item;
-        }
-      });
-    } else {
-      acc[pre] = obj[k];
+    function startSessionMonitoring() {
+        // Monitor tab changes
+        monitoringListeners.tabActivated = async (activeInfo) => {
+            try {
+                await sessionLogger.logEvent('TAB_SWITCH', {
+                    tabId: activeInfo.tabId,
+                    windowId: activeInfo.windowId,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Error logging tab switch:", e);
+            }
+        };
+        chrome.tabs.onActivated.addListener(monitoringListeners.tabActivated);
+
+        // Monitor window focus
+        monitoringListeners.windowFocus = async (windowId) => {
+            try {
+                await sessionLogger.logEvent('WINDOW_FOCUS_CHANGE', {
+                    windowId: windowId,
+                    hasFocus: windowId !== chrome.windows.WINDOW_ID_NONE,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Error logging window focus:", e);
+            }
+        };
+        chrome.windows.onFocusChanged.addListener(monitoringListeners.windowFocus);
+
+        // Monitor tab visibility
+        monitoringListeners.tabUpdated = async (tabId, changeInfo, tab) => {
+            if (changeInfo.status === 'complete') {
+                try {
+                    await sessionLogger.logEvent('TAB_UPDATED', {
+                        tabId: tabId,
+                        url: tab.url,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (e) {
+                    console.error("Error logging tab update:", e);
+                }
+            }
+        };
+        chrome.tabs.onUpdated.addListener(monitoringListeners.tabUpdated);
+
+        // Monitor browser idle state
+        monitoringListeners.idleState = async (newState) => {
+            try {
+                await sessionLogger.logEvent('IDLE_STATE_CHANGE', {
+                    state: newState,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Error logging idle state:", e);
+            }
+        };
+        chrome.idle.onStateChanged.addListener(monitoringListeners.idleState);
     }
-    
-    return acc;
-  }, {});
-}
+
+    function stopSessionMonitoring() {
+        // Remove all monitoring listeners
+        if (monitoringListeners.tabActivated) {
+            chrome.tabs.onActivated.removeListener(monitoringListeners.tabActivated);
+        }
+        if (monitoringListeners.windowFocus) {
+            chrome.windows.onFocusChanged.removeListener(monitoringListeners.windowFocus);
+        }
+        if (monitoringListeners.tabUpdated) {
+            chrome.tabs.onUpdated.removeListener(monitoringListeners.tabUpdated);
+        }
+        if (monitoringListeners.idleState) {
+            chrome.idle.onStateChanged.removeListener(monitoringListeners.idleState);
+        }
+        monitoringListeners = {
+            tabActivated: null,
+            windowFocus: null,
+            tabUpdated: null,
+            idleState: null
+        };
+    }
+
+    // Single message listener to handle all extension messages
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        console.log("Background received message:", message);
+        
+        if (message.action === 'startExam') {
+            // Immediately acknowledge receipt
+            sendResponse({ received: true, processing: true });
+            
+            const timeoutId = setTimeout(() => {
+                if (sender.tab?.id) {
+                    chrome.tabs.sendMessage(sender.tab.id, {
+                        action: 'examStartResult',
+                        success: true,
+                        data: {
+                            sessionId: `default-session-${Date.now()}`,
+                            status: "pending",
+                            message: "Default response due to timeout"
+                        },
+                        isDefault: true
+                    });
+                }
+            }, 5000);
+
+            // Start the session
+            sessionLogger.startSession(message.data)
+                .then(result => {
+                    clearTimeout(timeoutId);
+                    
+                    if (sender.tab?.id) {
+                        chrome.tabs.sendMessage(sender.tab.id, {
+                            action: 'examStartResult',
+                            success: true,
+                            data: result
+                        });
+                    }
+
+                    // Start monitoring automatically after successful session start
+                    startSessionMonitoring();
+                })
+                .catch(error => {
+                    clearTimeout(timeoutId);
+                    console.error('Error in session start:', error);
+                    
+                    if (sender.tab?.id) {
+                        chrome.tabs.sendMessage(sender.tab.id, {
+                            action: 'examStartResult',
+                            success: false,
+                            error: error.message
+                        });
+                    }
+                });
+
+            return true; // Keep the message channel open for async response
+        }
+        
+        else if (message.action === 'endExam') {
+            sessionLogger.endSession()
+                .then(() => {
+                    sendResponse({ success: true });
+                    // Remove all monitoring listeners
+                    stopSessionMonitoring();
+                })
+                .catch(error => {
+                    console.error('Error ending session:', error);
+                    sendResponse({ success: false, error: error.message });
+                });
+            return true; // Keep message channel open for async response
+        }
+
+        else if (message.action === 'proxyRequest') {
+            fetch(message.url, message.options)
+                .then(response => response.text())
+                .then(data => {
+                    sendResponse({
+                        status: 200,
+                        data: data
+                    });
+                })
+                .catch(error => {
+                    sendResponse({
+                        error: error.message
+                    });
+                });
+            return true; // Keep the message channel open
+        }
+    });
+
+    // Automatically restore session on extension reload
+    chrome.storage.local.get('currentExamSession', async (data) => {
+        if (data.currentExamSession) {
+            try {
+                const restored = await sessionLogger.restoreSession(data.currentExamSession);
+                if (restored) {
+                    startSessionMonitoring();
+                }
+            } catch (error) {
+                console.error('Error restoring session:', error);
+            }
+        }
+    });
+})();
+

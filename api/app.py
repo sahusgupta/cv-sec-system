@@ -4,7 +4,16 @@ import jwt
 from requests import session
 import psycopg2 as pg
 from google.cloud import storage as gcs
+import json
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from MVP.database import get_connection, create_exam_tables
+from flask_cors import CORS
+import ssl
+
 app = Flask(__name__)
+CORS(app)
 app.config["JWT_SECRET"] = "5y5Pr0c10r1ng"
 app.config["CONSUMER_SECRET"] = "5y5Pr0c10r1ng"
 
@@ -144,27 +153,47 @@ def exam(exam_id):
 
 @app.route('/api/exams/<int:exam_id>/start', methods=['POST'])
 def start_exam(exam_id):
-    data = {
-
-    }
+    data = request.get_json()
     client = pg.connect("")
     cur = client.cursor()
-    cur.execute("SELECT * FROM exams WHERE id = %s", (exam_id))
-    response = cur.fetchone()
-    if response:
-        data = {col: response[i] for i, col in zip([n for n in range(len(response))], cur.description)}
-        if response[5] == "started":
-            data['status'] = "in_progress"
-        else:
-            cur.execute("UPDATE exams SET status = 'started' WHERE id = %s", (exam_id))
-            client.commit()
-            cur.close()
-            client.close()
-        
-        return jsonify(data), 200
-    else:
-        return jsonify({"message": "Exam not found"}), 404
     
+    # Check if exam exists
+    cur.execute("SELECT * FROM exams WHERE id = %s", (exam_id,))
+    response = cur.fetchone()
+
+    try:
+        if not response:
+            # Insert new exam if it doesn't exist
+            cur.execute("""
+                INSERT INTO exams (id, name, course, creator, created_at, status, startTime, endTime)
+                VALUES (%s, %s, %s, %s, NOW(), 'started', NOW(), NULL)
+                RETURNING *
+            """, (exam_id, data.get('name'), data.get('course'), data.get('creator')))
+            response = cur.fetchone()
+            client.commit()
+
+        # Create exam session
+        cur.execute("""
+            INSERT INTO exam_sessions (exam_id, student_id, start_time, status)
+            VALUES (%s, %s, NOW(), 'active')
+            RETURNING session_id
+        """, (exam_id, data.get('student_id')))
+        
+        session_id = cur.fetchone()[0]
+        client.commit()
+
+        # Format response data
+        exam_data = {col.name: response[i] for i, col in enumerate(cur.description)}
+        exam_data['session_id'] = session_id
+        
+        return jsonify(exam_data), 200
+
+    except Exception as e:
+        client.rollback()
+        return jsonify({"message": str(e)}), 500
+    finally:
+        cur.close()
+        client.close()
 @app.route('/api/exams/<int:exam_id>/submit', methods=['POST'])
 def submit_exam(exam_id):
     client = pg.connect("")
@@ -318,5 +347,223 @@ def upload_media():
         
     # Get media file from request
     
+@app.route('/api/sessions/start', methods=['POST'])
+def start_session():
+    print("Request headers:", dict(request.headers))
+    raw_data = request.get_data()
+    print("Raw request data:", raw_data)
+    
+    try:
+        data = request.get_json(force=True)
+        print("Parsed JSON data:", data)
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        try:
+            # First, make sure the student exists in the users table
+            cur.execute("SELECT user_id FROM users WHERE user_id = %s", (data['student_id'],))
+            student_exists = cur.fetchone()
+            if not student_exists:
+                # Create student user if it doesn't exist
+                cur.execute("""
+                    INSERT INTO users (user_id, full_name, email, role, created_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """, (
+                    data['student_id'],
+                    f"Student {data['student_id']}",  # Default name
+                    f"student{data['student_id']}@example.com",  # Default email
+                    'student'  # Role
+                ))
+                print(f"Created student user with ID: {data['student_id']}")
+                
+            # Make sure default admin user exists
+            cur.execute("SELECT user_id FROM users WHERE user_id = 1")
+            admin_exists = cur.fetchone()
+            if not admin_exists:
+                # Create a default admin user
+                cur.execute("""
+                    INSERT INTO users (user_id, full_name, email, role, created_at)
+                    VALUES (1, 'System Admin', 'admin@sysproctoring.com', 'admin', NOW())
+                """)
+                print("Created default admin user with ID 1")
+
+            # Now check if there's an active session
+            cur.execute("""
+                SELECT session_id FROM exam_sessions 
+                WHERE student_id = %s AND status = 'active'
+                LIMIT 1
+            """, (data['student_id'],))
+            
+            existing_session = cur.fetchone()
+            if existing_session:
+                return jsonify({
+                    'session_id': existing_session[0],
+                    'status': 'active',
+                    'message': 'Existing session found'
+                })
+
+            # Check if the exam exists, create it if not
+            cur.execute("SELECT exam_id FROM exams WHERE exam_id = %s", (data['exam_id'],))
+            exam_exists = cur.fetchone()
+            
+            if not exam_exists:
+                # Create the exam record first
+                cur.execute("""
+                    INSERT INTO exams (exam_id, title, course_code, created_by, created_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """, (
+                    data['exam_id'],
+                    f"Canvas Quiz {data['exam_id']}",  # Default title
+                    'CANVAS',  # Default course code
+                    1  # Admin user ID
+                ))
+                print(f"Created new exam record for ID: {data['exam_id']}")
+
+            # Create new session
+            cur.execute("""
+                INSERT INTO exam_sessions 
+                (student_id, exam_id, start_time, status) 
+                VALUES (%s, %s, NOW(), 'active')
+                RETURNING session_id
+            """, (data['student_id'], data['exam_id']))
+            
+            session_id = cur.fetchone()[0]
+            conn.commit()
+            
+            return jsonify({
+                'session_id': session_id,
+                'status': 'active',
+                'message': 'New session created'
+            })
+        
+        except Exception as e:
+            conn.rollback()
+            print(f"Database error: {str(e)}")
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+        
+        finally:
+            cur.close()
+            conn.close()
+            
+    except Exception as e:
+        print(f"JSON parsing error: {str(e)}")
+        return jsonify({'error': f'Failed to parse JSON: {str(e)}'}), 400
+
+@app.route('/api/sessions/<int:session_id>/events', methods=['POST'])
+def log_event(session_id):
+    print(f"Logging event for session {session_id}")
+    print("Request headers:", dict(request.headers))
+    raw_data = request.get_data()
+    print("Raw request data:", raw_data)
+    
+    try:
+        data = request.get_json(force=True)
+        print("Parsed JSON data:", data)
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        try:
+            # First verify session exists and is active
+            cur.execute("""
+                SELECT status FROM exam_sessions 
+                WHERE session_id = %s
+            """, (session_id,))
+            
+            session = cur.fetchone()
+            if not session:
+                return jsonify({'error': 'Session not found'}), 404
+            if session[0] != 'active':
+                return jsonify({'error': 'Session is not active'}), 400
+
+            # Log the event
+            cur.execute("""
+                INSERT INTO session_events 
+                (session_id, event_type, event_data, timestamp) 
+                VALUES (%s, %s, %s, NOW())
+            """, (session_id, data['eventType'], json.dumps(data.get('additionalInfo', {}))))
+            
+            conn.commit()
+            return jsonify({'status': 'success'})
+        
+        except Exception as e:
+            conn.rollback()
+            print(f"Database error: {str(e)}")
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+        
+        finally:
+            cur.close()
+            conn.close()
+            
+    except Exception as e:
+        print(f"JSON parsing error: {str(e)}")
+        return jsonify({'error': f'Failed to parse JSON: {str(e)}'}), 400
+
+@app.route('/api/sessions/<int:session_id>/end', methods=['POST'])
+def end_session(session_id):
+    print(f"Ending session {session_id}")
+    
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            UPDATE exam_sessions
+            SET status = 'completed', end_time = NOW()
+            WHERE session_id = %s
+        """, (session_id,))
+        
+        conn.commit()
+        return jsonify({'status': 'success'})
+    
+    except Exception as e:
+        conn.rollback()
+        print(f"Database error: {str(e)}")
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/exams/<int:exam_id>/sessions', methods=['GET'])
+def get_exam_sessions(exam_id):
+    student_id = request.args.get('student_id')
+    if not student_id:
+        return jsonify({"error": "student_id parameter required"}), 400
+        
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Check for active session
+        cur.execute("""
+            SELECT session_id, start_time, status, last_activity
+            FROM exam_sessions
+            WHERE exam_id = %s AND student_id = %s AND status = 'active'
+            ORDER BY start_time DESC
+            LIMIT 1
+        """, (exam_id, student_id))
+        
+        active_session = cur.fetchone()
+        
+        if active_session:
+            return jsonify({
+                "activeSession": {
+                    "session_id": active_session[0],
+                    "start_time": active_session[1].isoformat(),
+                    "status": active_session[2],
+                    "last_activity": active_session[3].isoformat()
+                }
+            })
+        
+        return jsonify({"activeSession": None})
+        
+    finally:
+        cur.close()
+        conn.close()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    create_exam_tables()  # Create tables before starting the app
+    # Remove SSL context for development
+    app.run(debug=True, host='127.0.0.1', port=5000)

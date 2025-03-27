@@ -97,4 +97,26 @@ def process_frames(frames, criteria):
         "overall_probability": overall_probability
     }
 
+def get_course_id_from_url(canvas_url: str) -> str:
+    """
+    Extract course ID from a Canvas course URL
+    
+    Example:
+        url = "https://canvas.instructure.com/courses/12345"
+        course_id = get_course_id_from_url(url)  # Returns "12345"
+    """
+    try:
+        # Split URL by '/' and find the index after 'courses'
+        parts = canvas_url.split('/')
+        course_index = parts.index('courses')
+        return parts[course_index + 1]
+    except (ValueError, IndexError):
+        raise ValueError("Invalid Canvas URL format. URL should contain '/courses/[course_id]'")
+
+# Example usage:
+if __name__ == "__main__":
+    url = input("Enter your Canvas course URL: ")
+    course_id = get_course_id_from_url(url)
+    print(f"Your course ID is: {course_id}")
+
 
